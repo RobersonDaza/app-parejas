@@ -1,6 +1,10 @@
 -- ============================================================
 --  MIGRACIÓN 001 — De una pareja a muchas
 --
+--  (En el ensayo del proyecto desechable, este archivo es el
+--   PASO 3 DE 4. Va después de paso-2-datos-de-ensayo.sql y
+--   antes de paso-4-verificar-aislamiento.sql.)
+--
 --  QUÉ HACE
 --  Hoy todas las políticas dicen `using (true)`: cualquier usuario
 --  autenticado ve todo. Eso funciona con dos cuentas y el registro
@@ -25,6 +29,15 @@
 -- ============================================================
 
 begin;
+
+-- Aviso claro si se corre sobre una base que no es la esperada
+do $$
+begin
+  if to_regclass('public.actividades') is null then
+    raise exception 'No encuentro las tablas de la app. Si estás ensayando, corre antes supabase/paso-1-esquema-actual.sql';
+  end if;
+end;
+$$;
 
 -- ------------------------------------------------------------
 --  1. Las dos tablas nuevas

@@ -1,5 +1,11 @@
 -- ============================================================
---  000 — EL ESQUEMA TAL COMO ESTÁ HOY EN PRODUCCIÓN
+--  ENSAYO · PASO 1 DE 4        (los 4 pasos, en orden:)
+--    1. supabase/paso-1-esquema-actual.sql        ← estás aquí
+--    2. supabase/ensayo/paso-2-datos-de-ensayo.sql
+--    3. supabase/001-multiples-parejas.sql        ← ojo: carpeta de arriba
+--    4. supabase/ensayo/paso-4-verificar-aislamiento.sql
+-- ------------------------------------------------------------
+--  EL ESQUEMA TAL COMO ESTÁ HOY EN PRODUCCIÓN
 --
 --  Es la suma de todos los pasos de GUIA-SUPABASE.md, en orden.
 --  No hace falta correrlo en el proyecto real: ya está aplicado.

@@ -1,14 +1,25 @@
 -- ============================================================
---  ENSAYO 010 — Datos falsos que imitan a producción
+--  ENSAYO · PASO 2 DE 4
+--  Antes de este va: supabase/paso-1-esquema-actual.sql
+-- ------------------------------------------------------------
+--  Datos falsos que imitan a producción
 --
 --  SOLO PARA EL PROYECTO DESECHABLE. Nunca en el real: crea
 --  usuarios de mentira escribiendo directamente en auth.users.
 --
---  Se corre DESPUÉS de 000-esquema-actual.sql y ANTES de la
---  migración 001. Deja el proyecto como está hoy el tuyo: dos
+--  Se corre DESPUÉS del paso 1 y ANTES de la migración 001. Deja el proyecto como está hoy el tuyo: dos
 --  personas, sus nombres en config, y contenido repartido entre
 --  las dos, para poder comprobar que la migración no pierde nada.
 -- ============================================================
+
+-- Aviso claro si se corre fuera de orden
+do $$
+begin
+  if to_regclass('public.config') is null then
+    raise exception 'Falta el paso 1: corre antes supabase/paso-1-esquema-actual.sql';
+  end if;
+end;
+$$;
 
 do $$
 declare

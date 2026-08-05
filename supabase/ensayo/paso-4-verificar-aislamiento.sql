@@ -1,5 +1,8 @@
 -- ============================================================
---  ENSAYO 020 — ¿De verdad una pareja no ve nada de la otra?
+--  ENSAYO · PASO 4 DE 4
+--  Antes de este van, en orden: paso 1, paso 2 y la migración 001
+-- ------------------------------------------------------------
+--  ¿De verdad una pareja no ve nada de la otra?
 --
 --  SOLO PARA EL PROYECTO DESECHABLE.
 --  Se corre DESPUÉS de la migración 001.
@@ -34,12 +37,12 @@ declare
 begin
   select id into ana from auth.users where email = 'ana@ensayo.test';
   if ana is null then
-    raise exception 'Faltan los datos de ensayo: corre antes 010-datos-de-ensayo.sql';
+    raise exception 'Falta el paso 2: corre antes supabase/ensayo/paso-2-datos-de-ensayo.sql (y antes de él, el paso 1)';
   end if;
 
   select pareja_id into pareja_a from miembros where user_id = ana;
   if pareja_a is null then
-    raise exception 'Falta la migración: corre antes 001-multiples-parejas.sql';
+    raise exception 'Falta el paso 3: corre antes supabase/001-multiples-parejas.sql';
   end if;
 
   -- ---------- Segunda pareja, por el camino real ----------
