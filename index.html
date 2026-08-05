@@ -58,9 +58,9 @@
        ============================================================ -->
   <div id="vista-login" class="fixed inset-0 z-40 flex items-center justify-center bg-crema dark:bg-noche-900 p-6">
     <div class="anim-in w-full max-w-sm">
-      <p class="text-center text-xs font-bold uppercase tracking-widest text-oliva">Espacio de</p>
-      <!-- El texto real sale de config.js (nombres de la pareja) -->
-      <h1 data-titulo class="text-center text-3xl font-extrabold text-terracota">Nuestro Espacio</h1>
+      <!-- Antes del login no se muestra ningún nombre: el título es fijo y
+           genérico. Los nombres reales aparecen en la cabecera, ya adentro. -->
+      <h1 class="text-center text-3xl font-extrabold text-terracota">Nuestro Espacio</h1>
 
       <!-- Aviso si aún no se pegaron las claves de Supabase -->
       <div id="aviso-config" class="hidden mt-6 rounded-2xl bg-terracota-soft p-4 text-sm text-terracota-dark">
@@ -124,7 +124,7 @@
   <header class="sticky top-0 z-30 bg-crema/90 dark:bg-noche-900/90 backdrop-blur border-b border-arena-200 dark:border-noche-700">
     <div class="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
       <div>
-        <p class="text-xs font-bold uppercase tracking-widest text-oliva dark:text-oliva-soft">Espacio de</p>
+        <p id="rotulo-espacio" class="hidden text-xs font-bold uppercase tracking-widest text-oliva dark:text-oliva-soft">Espacio de</p>
         <h1 data-titulo class="text-xl font-extrabold leading-tight text-terracota">Nuestro Espacio</h1>
       </div>
       <div class="flex items-center gap-2">
@@ -455,6 +455,8 @@
     TITULO   = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
     document.title = TITULO;
     $$('[data-titulo]').forEach((el) => { el.textContent = TITULO; });
+    // "Espacio de" solo tiene sentido delante de nombres propios
+    $('#rotulo-espacio').classList.toggle('hidden', !NOMBRES.length);
   }
 
   // ---------- Utilidades básicas ----------
