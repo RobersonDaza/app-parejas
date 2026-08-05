@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Nuestro Espacio</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS v2 (CDN): cliente de base de datos y autenticación -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Configuración privada (claves y correos). No se sube al repositorio:
+       copia config.example.js como config.js y complétalo. -->
+  <script src="config.js"></script>
+  <script>
+    // ============================================================
+    // Configuración de Tailwind: paleta cálida (arena / terracota /
+    // oliva) y modo oscuro controlado por la clase "dark" en <html>.
+    // ============================================================
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            crema:     '#FAF6EF',
+            arena:     { 100: '#F4EDDF', 200: '#E9DCC6', 300: '#D8C4A4', 400: '#C0A87F' },
+            terracota: { DEFAULT: '#C2603C', dark: '#9E4B2C', soft: '#EFC9B8' },
+            oliva:     { DEFAULT: '#7A8450', dark: '#5C6539', soft: '#D9DEC3' },
+            noche:     { 900: '#26201A', 800: '#322A22', 700: '#3F352B', 600: '#4D4136', 100: '#EDE3D4' }
+          },
+          fontFamily: { sans: ['Nunito', 'system-ui', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+
+  <!-- Tipografía cálida y redondeada -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    html { -webkit-tap-highlight-color: transparent; }
+    .scroll-suave::-webkit-scrollbar { width: 6px; }
+    .scroll-suave::-webkit-scrollbar-thumb { background: #C0A87F; border-radius: 9999px; }
+    input[type="range"] { accent-color: #C2603C; }
+    .anim-in { animation: aparecer .25s ease-out; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .girando { animation: pulso .15s ease-in-out infinite alternate; }
+    @keyframes pulso { from { transform: scale(1); } to { transform: scale(1.03); } }
+  </style>
+</head>
+
+<body class="bg-crema text-noche-800 dark:bg-noche-900 dark:text-noche-100 font-sans min-h-screen transition-colors duration-300">
+
+  <!-- ============================================================
+       PANTALLA DE INICIO DE SESIÓN
+       Cubre toda la app hasta que la persona se autentique.
+       ============================================================ -->
+  <div id="vista-login" class="fixed inset-0 z-40 flex items-center justify-center bg-crema dark:bg-noche-900 p-6">
+    <div class="anim-in w-full max-w-sm">
+      <p class="text-center text-xs font-bold uppercase tracking-widest text-oliva">Espacio de</p>
+      <!-- El texto real sale de config.js (nombres de la pareja) -->
+      <h1 data-titulo class="text-center text-3xl font-extrabold text-terracota">Nuestro Espacio</h1>
+
+      <!-- Aviso si aún no se pegaron las claves de Supabase -->
+      <div id="aviso-config" class="hidden mt-6 rounded-2xl bg-terracota-soft p-4 text-sm text-terracota-dark">
+        <p class="font-bold">Falta configurar Supabase.</p>
+        <p class="mt-1">Copia <code>config.example.js</code> como <code>config.js</code> y complétalo con tu URL, tu clave anon y los correos de ambos (ver GUIA-SUPABASE.md).</p>
+      </div>
+
+      <form id="form-login" class="mt-8 space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-lg">
+        <input id="login-email" type="email" required autocomplete="email" placeholder="Tu correo"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <input id="login-pass" type="password" required autocomplete="current-password" placeholder="Tu contraseña"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <p id="login-error" class="hidden text-sm font-bold text-terracota"></p>
+        <button id="btn-login" type="submit" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Entrar</button>
+        <p id="nota-acceso" class="text-center text-[11px] opacity-60">Solo ustedes dos tienen acceso a este espacio.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: fecha de inicio de la relación (compartida en la nube)
+       ============================================================ -->
+  <div id="modal-fecha" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+    <div class="anim-in w-full max-w-sm rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-2xl">
+      <h2 class="text-xl font-extrabold text-terracota">Nuestro punto de partida</h2>
+      <p class="mt-2 text-sm opacity-80">¿Desde qué fecha cuentan su historia juntos? Se guarda en la nube para ambos.</p>
+      <input id="input-fecha-inicio" type="date" class="mt-4 w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-base outline-none focus:ring-2 focus:ring-terracota" />
+      <p id="error-fecha" class="hidden mt-2 text-sm font-bold text-terracota">Elige una fecha válida (no puede ser futura).</p>
+      <button id="btn-guardar-fecha" class="mt-5 w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Guardar fecha</button>
+    </div>
+  </div>
+
+  <!-- Selector de fotos (invisible): se dispara desde los planes completados -->
+  <input id="input-foto" type="file" accept="image/*" multiple class="hidden" />
+
+  <!-- Visor de foto a pantalla completa -->
+  <div id="visor-foto" class="hidden fixed inset-0 z-50 flex flex-col bg-black/95 p-4">
+    <div class="flex items-center justify-between gap-2 text-white">
+      <p id="visor-info" class="min-w-0 truncate text-xs opacity-80"></p>
+      <button id="btn-cerrar-visor" aria-label="Cerrar" class="shrink-0 p-2 text-2xl leading-none">✕</button>
+    </div>
+    <img id="visor-img" class="my-auto max-h-[78vh] w-full rounded-2xl object-contain" alt="Foto del recuerdo" />
+    <button id="btn-borrar-foto" class="mx-auto mb-2 rounded-full bg-white/15 px-5 py-2 text-xs font-bold text-white active:scale-95 transition">Eliminar foto</button>
+  </div>
+
+  <!-- Modal de novedades al iniciar sesión -->
+  <div id="modal-novedades" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+    <div class="anim-in w-full max-w-sm rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-2xl">
+      <h2 class="text-xl font-extrabold text-terracota">Mientras no estabas 💌</h2>
+      <ul id="lista-novedades" class="mt-4 space-y-2 text-sm"></ul>
+      <button id="btn-cerrar-novedades" class="mt-5 w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Ir a verlo</button>
+    </div>
+  </div>
+
+  <!-- Notificación flotante (cambios en tiempo real, errores breves) -->
+  <div id="toast" class="hidden fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-noche-800 px-4 py-2 text-sm font-bold text-white shadow-lg dark:bg-arena-200 dark:text-noche-900"></div>
+
+  <!-- ============================================================
+       ENCABEZADO
+       ============================================================ -->
+  <header class="sticky top-0 z-30 bg-crema/90 dark:bg-noche-900/90 backdrop-blur border-b border-arena-200 dark:border-noche-700">
+    <div class="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-oliva dark:text-oliva-soft">Espacio de</p>
+        <h1 data-titulo class="text-xl font-extrabold leading-tight text-terracota">Nuestro Espacio</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <!-- Activar notificaciones del sistema -->
+        <button id="btn-notif" aria-label="Activar notificaciones" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+        </button>
+        <!-- Alternador de tema claro / oscuro -->
+        <button id="btn-tema" aria-label="Cambiar tema" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
+          <svg id="icono-luna" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+          <svg id="icono-sol" class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+        <!-- Cerrar sesión -->
+        <button id="btn-salir" aria-label="Cerrar sesión" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H4m0 0 3-3m-3 3 3 3m5-9V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-1"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       CONTENIDO PRINCIPAL (vistas intercambiables)
+       ============================================================ -->
+  <main class="mx-auto max-w-lg px-5 pb-28 pt-5">
+
+    <!-- ================= VISTA: HOME / DASHBOARD ================= -->
+    <section id="vista-home" data-vista class="space-y-5">
+      <p class="text-sm opacity-70">Hola, <span class="quien-escribe font-extrabold text-terracota"></span> 💛</p>
+
+      <!-- Contador de tiempo juntos -->
+      <div class="anim-in rounded-3xl bg-gradient-to-br from-terracota to-terracota-dark p-6 text-white shadow-lg">
+        <p class="text-sm font-semibold opacity-90">Llevamos juntos</p>
+        <div id="contador" class="mt-3 flex items-end gap-4"></div>
+        <div class="mt-4 flex items-center justify-between text-xs opacity-90">
+          <span id="contador-total"></span>
+          <button id="btn-editar-fecha" class="underline underline-offset-2">Editar fecha</button>
+        </div>
+      </div>
+
+      <!-- Próximos eventos (recordatorios a 7 días) -->
+      <div class="anim-in">
+        <h2 class="mb-3 flex items-center gap-2 text-lg font-extrabold">
+          <svg class="h-5 w-5 text-oliva" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+          Próximos 7 días
+        </h2>
+        <div id="lista-proximos" class="space-y-3"></div>
+      </div>
+
+      <!-- Accesos rápidos -->
+      <div class="anim-in grid grid-cols-2 gap-3">
+        <button data-ir="gratitud" class="rounded-2xl bg-oliva-soft dark:bg-noche-700 p-4 text-left active:scale-95 transition">
+          <p class="font-extrabold text-oliva dark:text-oliva-soft">Frasco de Gratitud</p>
+          <p class="mt-1 text-xs opacity-70">Deja un mensaje bonito</p>
+        </button>
+        <button data-ir="ruleta" class="rounded-2xl bg-terracota-soft dark:bg-noche-700 p-4 text-left active:scale-95 transition">
+          <p class="font-extrabold text-terracota">Ruleta de Citas</p>
+          <p class="mt-1 text-xs opacity-70">¿No saben qué hacer?</p>
+        </button>
+        <button data-ir="recuerdos" class="col-span-2 rounded-2xl bg-arena-200 dark:bg-noche-700 p-4 text-left active:scale-95 transition">
+          <p class="font-extrabold">📷 Nuestros recuerdos</p>
+          <p class="mt-1 text-xs opacity-70">Las fotos de los planes que ya cumplimos</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= VISTA: PLANES (TO-DO DE PAREJA) ================= -->
+    <section id="vista-planes" data-vista class="hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold">Nuestros planes</h2>
+        <button id="btn-toggle-form" class="rounded-full bg-terracota px-4 py-2 text-sm font-bold text-white active:scale-95 transition">+ Nuevo plan</button>
+      </div>
+
+      <form id="form-actividad" class="hidden anim-in space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-5 shadow">
+        <input id="act-titulo" type="text" required maxlength="60" placeholder="Título (ej. Cena romántica)"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <textarea id="act-descripcion" rows="2" maxlength="200" placeholder="Descripción (opcional)"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota"></textarea>
+        <div class="flex gap-3">
+          <input id="act-fecha" type="date" required
+                 class="w-1/2 rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+          <select id="act-categoria"
+                 class="w-1/2 rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota">
+            <option value="Viajes">Viajes</option>
+            <option value="Citas">Citas</option>
+            <option value="Hogar">Hogar</option>
+            <option value="Crecimiento Personal">Crecimiento Personal</option>
+          </select>
+        </div>
+        <button id="btn-guardar-plan" type="submit" class="w-full rounded-xl bg-oliva py-3 font-bold text-white active:scale-95 transition">Guardar plan</button>
+      </form>
+
+      <div id="filtros-categoria" class="flex gap-2 overflow-x-auto pb-1 text-xs font-bold"></div>
+
+      <div id="lista-pendientes" class="space-y-3"></div>
+      <details id="bloque-completadas" class="hidden">
+        <summary class="cursor-pointer text-sm font-bold opacity-70">Completadas (<span id="num-completadas">0</span>)</summary>
+        <div id="lista-completadas" class="mt-3 space-y-3 opacity-70"></div>
+      </details>
+    </section>
+
+    <!-- ================= VISTA: FRASCO DE GRATITUD ================= -->
+    <section id="vista-gratitud" data-vista class="hidden space-y-5">
+      <h2 class="text-lg font-extrabold">El Frasco de la Gratitud</h2>
+      <p class="text-sm opacity-70">Un detalle pequeño dicho a tiempo vale mucho. Escribes como <span class="quien-escribe font-extrabold text-terracota"></span>.</p>
+
+      <form id="form-gratitud" class="space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-5 shadow">
+        <textarea id="gratitud-texto" rows="2" required maxlength="240" placeholder="Gracias por el café de esta mañana..."
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota"></textarea>
+        <button id="btn-guardar-gratitud" type="submit" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Echar al frasco</button>
+        <button id="btn-cancelar-gratitud" type="button" class="hidden w-full rounded-xl border-2 border-arena-300 dark:border-noche-600 py-2.5 text-sm font-bold active:scale-95 transition">Cancelar edición</button>
+      </form>
+
+      <div>
+        <h3 class="mb-2 text-sm font-extrabold opacity-70">Mensajes guardados (<span id="num-gratitud">0</span>)</h3>
+        <div id="lista-gratitud" class="scroll-suave max-h-96 space-y-3 overflow-y-auto pr-1"></div>
+      </div>
+    </section>
+
+    <!-- ================= VISTA: CHECK-IN EMOCIONAL ================= -->
+    <section id="vista-checkin" data-vista class="hidden space-y-5">
+      <h2 class="text-lg font-extrabold">Check-in Emocional</h2>
+      <p class="text-sm opacity-70">Cada fin de semana, un momento para mirarnos. Respondes como <span class="quien-escribe font-extrabold text-terracota"></span> — <span id="checkin-semana" class="font-bold"></span></p>
+
+      <form id="form-checkin" class="space-y-5 rounded-3xl bg-white dark:bg-noche-800 p-5 shadow">
+        <div>
+          <label class="text-sm font-bold">1. ¿Cómo estuvo nuestra comunicación esta semana?</label>
+          <input id="ci-comunicacion" type="range" min="1" max="5" value="3" class="mt-2 w-full" />
+          <div class="flex justify-between text-[10px] opacity-60"><span>Difícil</span><span>Excelente</span></div>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold">2. ¿Cuánto tiempo de calidad compartimos?</label>
+          <input id="ci-tiempo" type="range" min="1" max="5" value="3" class="mt-2 w-full" />
+          <div class="flex justify-between text-[10px] opacity-60"><span>Casi nada</span><span>Mucho</span></div>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold">3. ¿Cómo te sientes con la relación hoy?</label>
+          <div id="ci-reacciones" class="mt-2 flex justify-between">
+            <button type="button" data-valor="1" class="reaccion rounded-full p-2 text-2xl transition">😔</button>
+            <button type="button" data-valor="2" class="reaccion rounded-full p-2 text-2xl transition">😕</button>
+            <button type="button" data-valor="3" class="reaccion rounded-full p-2 text-2xl transition">😐</button>
+            <button type="button" data-valor="4" class="reaccion rounded-full p-2 text-2xl transition">🙂</button>
+            <button type="button" data-valor="5" class="reaccion rounded-full p-2 text-2xl transition">🥰</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold">4. ¿Qué te hizo feliz de nosotros esta semana?</label>
+          <textarea id="ci-feliz" rows="2" maxlength="300" class="mt-2 w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota"></textarea>
+        </div>
+
+        <div>
+          <label class="text-sm font-bold">5. ¿Hay algo que podamos mejorar?</label>
+          <textarea id="ci-mejorar" rows="2" maxlength="300" class="mt-2 w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota"></textarea>
+        </div>
+
+        <button type="submit" class="w-full rounded-xl bg-oliva py-3 font-bold text-white active:scale-95 transition">Guardar check-in</button>
+      </form>
+
+      <div>
+        <h3 class="mb-2 text-sm font-extrabold opacity-70">Historial</h3>
+        <div id="lista-checkins" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- ================= VISTA: RECUERDOS (GALERÍA DE FOTOS) ================= -->
+    <section id="vista-recuerdos" data-vista class="hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold">Nuestros recuerdos</h2>
+        <button data-ir="planes" class="text-sm font-bold text-oliva dark:text-oliva-soft underline">← Planes</button>
+      </div>
+      <p class="text-sm opacity-70">Las fotos de los planes cumplidos, agrupadas por evento. Para agregar una, marca un plan como completado y toca "Agregar foto".</p>
+      <div id="lista-recuerdos" class="space-y-6"></div>
+    </section>
+
+    <!-- ================= VISTA: REUNIONES MENSUALES ================= -->
+    <section id="vista-reuniones" data-vista class="hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-extrabold">Reuniones de pareja</h2>
+        <button id="btn-toggle-reunion" class="rounded-full bg-terracota px-4 py-2 text-sm font-bold text-white active:scale-95 transition">+ Nueva</button>
+      </div>
+      <p class="text-sm opacity-70">Una vez al mes: cómo vamos y qué acordamos. Los acuerdos quedan como checklist para irlos marcando durante el mes.</p>
+
+      <!-- Formulario de nueva reunión (colapsable) -->
+      <form id="form-reunion" class="hidden anim-in space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-5 shadow">
+        <div class="flex gap-3">
+          <input id="reu-fecha" type="date" required
+                 class="w-1/2 rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+          <input id="reu-titulo" type="text" maxlength="60" placeholder="Título (ej. Junio)"
+                 class="w-1/2 rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        </div>
+        <textarea id="reu-notas" rows="3" maxlength="2000" placeholder="Notas libres: qué hablamos, cómo nos sentimos, decisiones..."
+                 class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota"></textarea>
+        <div>
+          <label class="text-sm font-bold">Acuerdos / checklist (opcional)</label>
+          <div class="mt-2 flex gap-2">
+            <input id="reu-item" type="text" maxlength="120" placeholder="Ej. Ahorrar para el viaje"
+                   class="flex-1 rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+            <button type="button" id="btn-agregar-item" class="rounded-xl bg-oliva px-4 font-bold text-white active:scale-95 transition">+</button>
+          </div>
+          <ul id="reu-items-borrador" class="mt-2 space-y-1 text-sm"></ul>
+        </div>
+        <button type="submit" class="w-full rounded-xl bg-oliva py-3 font-bold text-white active:scale-95 transition">Guardar reunión</button>
+      </form>
+
+      <!-- Historial de reuniones -->
+      <div id="lista-reuniones" class="space-y-3"></div>
+    </section>
+
+    <!-- ================= VISTA: CALENDARIO ÍNTIMO ================= -->
+    <section id="vista-intimo" data-vista class="hidden space-y-5">
+      <h2 class="text-lg font-extrabold">Calendario íntimo</h2>
+      <p class="text-sm opacity-70">Su espacio privado para cuidar la intimidad. Toca un día para agendarlo; tócalo de nuevo para quitarlo.</p>
+
+      <div class="rounded-3xl bg-white dark:bg-noche-800 p-4 shadow">
+        <!-- Navegación de mes -->
+        <div class="flex items-center justify-between">
+          <button id="intimo-prev" aria-label="Mes anterior" class="rounded-full bg-arena-100 dark:bg-noche-700 px-3.5 py-1.5 font-bold active:scale-90 transition">‹</button>
+          <p id="intimo-mes" class="font-extrabold capitalize"></p>
+          <button id="intimo-next" aria-label="Mes siguiente" class="rounded-full bg-arena-100 dark:bg-noche-700 px-3.5 py-1.5 font-bold active:scale-90 transition">›</button>
+        </div>
+        <!-- Días de la semana -->
+        <div class="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-bold opacity-50">
+          <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+        <!-- Cuadrícula del mes -->
+        <div id="intimo-grid" class="mt-1 grid grid-cols-7 gap-1"></div>
+        <p class="mt-3 text-center text-[10px] opacity-50">El día con borde verde es hoy · Los días en terracota están agendados</p>
+      </div>
+
+      <div>
+        <h3 class="mb-2 text-sm font-extrabold opacity-70">Próximas citas</h3>
+        <ul id="intimo-proximos" class="space-y-1.5 rounded-2xl bg-arena-100 dark:bg-noche-800 p-4 text-sm"></ul>
+      </div>
+    </section>
+
+    <!-- ================= VISTA: RULETA DE CITAS ================= -->
+    <section id="vista-ruleta" data-vista class="hidden space-y-5">
+      <h2 class="text-lg font-extrabold">Ruleta de Citas</h2>
+      <p class="text-sm opacity-70">¿Sin plan? Dejen que el azar decida la próxima cita.</p>
+
+      <div id="tarjeta-ruleta" class="flex min-h-44 flex-col items-center justify-center rounded-3xl bg-gradient-to-br from-oliva to-oliva-dark p-6 text-center text-white shadow-lg">
+        <p id="ruleta-titulo" class="text-xl font-extrabold">¿Listos?</p>
+        <p id="ruleta-detalle" class="mt-2 text-sm opacity-90">Presionen el botón y descubran su próxima aventura.</p>
+      </div>
+
+      <button id="btn-girar" class="w-full rounded-2xl bg-terracota py-4 text-lg font-extrabold text-white shadow active:scale-95 transition">Girar la ruleta</button>
+    </section>
+  </main>
+
+  <!-- ============================================================
+       NAVEGACIÓN INFERIOR (Mobile-First)
+       ============================================================ -->
+  <nav class="fixed bottom-0 left-0 right-0 z-30 border-t border-arena-200 dark:border-noche-700 bg-white/95 dark:bg-noche-800/95 backdrop-blur">
+    <div class="mx-auto grid max-w-lg grid-cols-7">
+      <button data-ir="home" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2v-9Z"/></svg>
+        Inicio
+      </button>
+      <button data-ir="planes" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5h10M9 12h10M9 19h10M5 5h0m-1 7 1.5 1.5L8 11m-4 8h0"/></svg>
+        Planes
+      </button>
+      <button data-ir="gratitud" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7.5-4.6-9.5-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.5 12c-2 4.4-9.5 9-9.5 9Z"/></svg>
+        Gratitud
+      </button>
+      <button data-ir="checkin" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 10h8m-8 4h5m8-2a9 9 0 1 1-4-7.5L21 4l-.5 3.5A8.9 8.9 0 0 1 21 12Z"/></svg>
+        Check-in
+      </button>
+      <button data-ir="reuniones" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v0Zm0 7h6m-6 4h4"/></svg>
+        Reunión
+      </button>
+      <button data-ir="intimo" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+        Íntimo
+      </button>
+      <button data-ir="ruleta" class="nav-btn flex flex-col items-center gap-1 py-3 text-[10px] font-bold">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M12 3v9l6 4"/></svg>
+        Ruleta
+      </button>
+    </div>
+  </nav>
+
+  <script>
+  // ==============================================================
+  //  NUESTRO ESPACIO — Versión con Supabase
+  //  Los datos viven en la nube: ambos ven lo mismo y los cambios
+  //  del otro aparecen en tiempo real. El tema (claro/oscuro) sigue
+  //  siendo preferencia local de cada celular.
+  // ==============================================================
+  'use strict';
+
+  // ==============================================================
+  //  ⚙️ CONFIG — LO ÚNICO QUE DEBES EDITAR
+  //  Los valores reales viven en config.js, que queda fuera del
+  //  repositorio. Copia config.example.js como config.js y llénalo
+  //  con los datos del panel de Supabase (ver GUIA-SUPABASE.md).
+  //  Si config.js no existe, la app avisa que falta configurarla.
+  // ==============================================================
+  const CONFIG = window.APP_CONFIG || {
+    SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',      // solo la raíz, sin /rest/v1/
+    SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY',  // clave larga "anon public"
+    // Correos con los que crearon los usuarios en Supabase → nombre que se muestra
+    USUARIOS: {}
+  };
+
+  // ---------- Identidad de la pareja (sale de config.js) ----------
+  // Nombres en el orden en que están en USUARIOS. El primero usa el color
+  // terracota y el segundo el oliva.
+  const NOMBRES = Object.values(CONFIG.USUARIOS || {});
+  const NOMBRE_1 = NOMBRES[0] || '';
+  const TITULO   = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
+
+  document.title = TITULO;
+  document.querySelectorAll('[data-titulo]').forEach((el) => { el.textContent = TITULO; });
+  if (NOMBRES.length) {
+    document.querySelector('#nota-acceso').textContent =
+      `Solo ${NOMBRES.join(' y ')} tienen acceso a este espacio.`;
+  }
+
+  // ---------- Utilidades básicas ----------
+  const $  = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+  const cargarLocal  = (clave, porDefecto) => {
+    try { return JSON.parse(localStorage.getItem(clave)) ?? porDefecto; } catch { return porDefecto; }
+  };
+  const guardarLocal = (clave, valor) => localStorage.setItem(clave, JSON.stringify(valor));
+
+  const fechaLocal = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };
+  const hoyCero = () => { const h = new Date(); h.setHours(0, 0, 0, 0); return h; };
+  const FORMATO_FECHA = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', year: 'numeric' });
+  const esc = (txt) => String(txt).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---------- Cliente de Supabase ----------
+  const configurada = !CONFIG.SUPABASE_URL.includes('PEGA_AQUI');
+  const sb = configurada ? supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY) : null;
+
+  // Envuelve una consulta: si falla, muestra el error y corta el flujo
+  async function db(consulta) {
+    const { data, error } = await consulta;
+    if (error) { avisar('Error de conexión: ' + error.message); throw error; }
+    return data;
+  }
+
+  // ---------- Estado en memoria (espejo de la base de datos) ----------
+  let usuarioActual = '';
+  let miUserId = '';               // id del usuario autenticado (para saber qué es "mío")
+  let fechaInicio = null;          // "AAAA-MM-DD" compartida (tabla config)
+  let actividades = [];
+  let gratitudes  = [];
+  let checkins    = [];
+  let reuniones   = [];
+  let fotos       = [];
+  let urlsFotos   = {};            // ruta de storage → URL firmada temporal
+  let diasIntimos = [];            // días agendados del calendario íntimo
+  let filtroCategoria = 'Todas';
+  let marcaAccionLocal = 0;        // para no notificar tus propios cambios
+
+  const COLORES_CAT = {
+    'Viajes':               'bg-terracota-soft text-terracota-dark',
+    'Citas':                'bg-oliva-soft text-oliva-dark',
+    'Hogar':                'bg-arena-200 text-noche-700',
+    'Crecimiento Personal': 'bg-arena-300 text-noche-800'
+  };
+
+  // ---------- Notificación flotante ----------
+  let toastTimer = null;
+  function avisar(txt) {
+    const t = $('#toast');
+    t.textContent = txt;
+    t.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add('hidden'), 2800);
+  }
+
+  // ==============================================================
+  //  NOTIFICACIONES DEL SISTEMA
+  //  Con la app abierta o en segundo plano. Requiere permiso del
+  //  navegador (campana del encabezado) y, en Android, el sw.js.
+  // ==============================================================
+  let swReg = null;
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; }).catch(() => {});
+  }
+
+  function notificar(cuerpo) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!document.hidden) return; // si la app está visible, el aviso flotante basta
+    try {
+      if (swReg) swReg.showNotification(`${TITULO} 💛`, { body: cuerpo, tag: 'lr-app' });
+      else new Notification(`${TITULO} 💛`, { body: cuerpo });
+    } catch { /* algunos navegadores (iPhone sin instalar) no lo permiten */ }
+  }
+
+  $('#btn-notif').addEventListener('click', async () => {
+    if (!('Notification' in window)) { avisar('Este navegador no soporta notificaciones.'); return; }
+    if (Notification.permission === 'granted') { avisar('Las notificaciones ya están activas 🔔'); return; }
+    if (Notification.permission === 'denied') { avisar('Permiso bloqueado: actívalo en la configuración del navegador.'); return; }
+    const p = await Notification.requestPermission();
+    avisar(p === 'granted' ? 'Notificaciones activadas 🔔' : 'Permiso de notificaciones rechazado.');
+  });
+
+  // ==============================================================
+  //  NOVEDADES AL INICIAR SESIÓN ("Mientras no estabas")
+  //  Compara la última visita guardada en este dispositivo con lo
+  //  que el otro creó después.
+  // ==============================================================
+  function mostrarNovedades() {
+    const ultima = cargarLocal('lr_ultima_visita', null);
+    guardarLocal('lr_ultima_visita', new Date().toISOString());
+    if (!ultima) return; // primera visita en este dispositivo
+    const desde = new Date(ultima);
+    const delOtro = (lista, campoAutor) =>
+      lista.filter((x) => x[campoAutor] && x[campoAutor] !== usuarioActual && new Date(x.created_at) > desde).length;
+
+    const lineas = [];
+    const agregar = (n, singular, plural, destino) => {
+      if (n) lineas.push({ txt: `${n} ${n === 1 ? singular : plural}`, destino });
+    };
+    agregar(delOtro(gratitudes, 'autor'), 'mensaje nuevo en el frasco 💛', 'mensajes nuevos en el frasco 💛', 'gratitud');
+    agregar(delOtro(actividades, 'creado_por'), 'plan nuevo 📅', 'planes nuevos 📅', 'planes');
+    agregar(delOtro(checkins, 'autor'), 'check-in nuevo 💬', 'check-ins nuevos 💬', 'checkin');
+    agregar(delOtro(reuniones, 'creado_por'), 'reunión nueva 📝', 'reuniones nuevas 📝', 'reuniones');
+    agregar(delOtro(fotos, 'subido_por'), 'foto nueva en los recuerdos 📷', 'fotos nuevas en los recuerdos 📷', 'recuerdos');
+    if (!lineas.length) return;
+
+    $('#lista-novedades').innerHTML = lineas.map((l) =>
+      `<li><button data-ir="${l.destino}" data-cerrar-novedades class="w-full rounded-xl bg-arena-100 dark:bg-noche-700 px-3 py-2.5 text-left font-bold active:scale-95 transition">${l.txt}</button></li>`).join('');
+    $('#modal-novedades').classList.remove('hidden');
+  }
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('#btn-cerrar-novedades') || e.target.closest('[data-cerrar-novedades]')) {
+      $('#modal-novedades').classList.add('hidden');
+    }
+  });
+
+  // ==============================================================
+  //  TEMA CLARO / OSCURO (preferencia local de cada dispositivo)
+  // ==============================================================
+  function aplicarTema(tema) {
+    document.documentElement.classList.toggle('dark', tema === 'oscuro');
+    $('#icono-luna').classList.toggle('hidden', tema === 'oscuro');
+    $('#icono-sol').classList.toggle('hidden', tema !== 'oscuro');
+    guardarLocal('lr_tema', tema);
+  }
+  $('#btn-tema').addEventListener('click', () => {
+    aplicarTema(document.documentElement.classList.contains('dark') ? 'claro' : 'oscuro');
+  });
+  aplicarTema(cargarLocal('lr_tema', 'claro'));
+
+  // ==============================================================
+  //  AUTENTICACIÓN
+  // ==============================================================
+  $('#form-login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!sb) return;
+    const btn = $('#btn-login');
+    btn.disabled = true; btn.textContent = 'Entrando...';
+    const { data, error } = await sb.auth.signInWithPassword({
+      email: $('#login-email').value.trim(),
+      password: $('#login-pass').value
+    });
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (error) {
+      $('#login-error').textContent = 'Correo o contraseña incorrectos.';
+      $('#login-error').classList.remove('hidden');
+      return;
+    }
+    iniciarApp(data.session);
+  });
+
+  $('#btn-salir').addEventListener('click', async () => {
+    if (sb) await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function iniciarApp(sesion) {
+    const correo = sesion.user.email.toLowerCase();
+    miUserId = sesion.user.id;
+    usuarioActual = CONFIG.USUARIOS[correo] || correo.split('@')[0];
+    $$('.quien-escribe').forEach((el) => el.textContent = usuarioActual);
+    $('#vista-login').classList.add('hidden');
+
+    await Promise.all([refrescarConfig(), refrescarActividades(), refrescarGratitudes(), refrescarCheckins(), refrescarReuniones(), refrescarFotos(), refrescarIntimo()]);
+    suscribirTiempoReal();
+    irA('home');
+    mostrarNovedades(); // resumen de lo que el otro agregó desde la última visita
+  }
+
+  // ==============================================================
+  //  TIEMPO REAL: si el otro agrega/edita algo, la app se actualiza
+  // ==============================================================
+  function suscribirTiempoReal() {
+    const esAjeno = () => Date.now() - marcaAccionLocal > 3000;
+    // Avisa dentro de la app (toast) y, si está en segundo plano, con notificación del sistema
+    const anunciar = (txt) => { avisar(txt); notificar(txt); };
+    sb.channel('lr-cambios')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'actividades' }, () => {
+        refrescarActividades().then(() => { if (esAjeno()) anunciar('Los planes se actualizaron 📅'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gratitudes' }, () => {
+        refrescarGratitudes().then(() => { if (esAjeno()) anunciar('Hay algo nuevo en el frasco 💛'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'checkins' }, () => {
+        refrescarCheckins().then(() => { if (esAjeno()) anunciar('Nuevo check-in guardado 💬'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reuniones' }, () => {
+        refrescarReuniones().then(() => { if (esAjeno()) anunciar('Notas de reunión actualizadas 📝'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'fotos' }, () => {
+        refrescarFotos().then(() => { if (esAjeno()) anunciar('Hay fotos nuevas en los recuerdos 📷'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendario_intimo' }, () => {
+        refrescarIntimo().then(() => { if (esAjeno()) anunciar('El calendario se actualizó 💫'); });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescarConfig())
+      .subscribe();
+  }
+
+  // ==============================================================
+  //  LECTURAS (refrescan el estado en memoria y repintan)
+  // ==============================================================
+  async function refrescarConfig() {
+    const filas = await db(sb.from('config').select('*').eq('clave', 'fecha_inicio'));
+    fechaInicio = filas[0]?.valor || null;
+    if (!fechaInicio) abrirModalFecha(); else pintarContador();
+  }
+  async function refrescarActividades() {
+    actividades = await db(sb.from('actividades').select('*').order('fecha'));
+    pintarActividades(); pintarProximos();
+  }
+  async function refrescarGratitudes() {
+    gratitudes = await db(sb.from('gratitudes').select('*').order('created_at', { ascending: false }));
+    pintarGratitudes();
+  }
+  async function refrescarCheckins() {
+    checkins = await db(sb.from('checkins').select('*').order('created_at', { ascending: false }));
+    pintarCheckins();
+  }
+  async function refrescarReuniones() {
+    reuniones = await db(sb.from('reuniones').select('*').order('fecha', { ascending: false }));
+    pintarReuniones();
+  }
+  async function refrescarFotos() {
+    fotos = await db(sb.from('fotos').select('*').order('created_at', { ascending: false }));
+    // Las fotos son privadas: se piden URLs firmadas temporales (1 hora) para mostrarlas
+    urlsFotos = {};
+    if (fotos.length) {
+      const { data } = await sb.storage.from('fotos').createSignedUrls(fotos.map((f) => f.ruta), 3600);
+      (data || []).forEach((u) => { if (u.signedUrl) urlsFotos[u.path] = u.signedUrl; });
+    }
+    pintarRecuerdos();
+    pintarActividades(); // actualiza el contador de fotos en las tarjetas
+  }
+
+  // ==============================================================
+  //  CONTADOR DE TIEMPO JUNTOS
+  // ==============================================================
+  function diferenciaAMD(inicio, fin) {
+    let a = fin.getFullYear() - inicio.getFullYear();
+    let m = fin.getMonth() - inicio.getMonth();
+    let d = fin.getDate() - inicio.getDate();
+    if (d < 0) { m--; d += new Date(fin.getFullYear(), fin.getMonth(), 0).getDate(); }
+    if (m < 0) { a--; m += 12; }
+    return { a, m, d };
+  }
+
+  function pintarContador() {
+    if (!fechaInicio) return;
+    const { a, m, d } = diferenciaAMD(fechaLocal(fechaInicio), hoyCero());
+    const totalDias = Math.floor((hoyCero() - fechaLocal(fechaInicio)) / 86400000);
+    const bloque = (num, etiqueta) => `
+      <div class="text-center">
+        <p class="text-4xl font-extrabold leading-none">${num}</p>
+        <p class="mt-1 text-xs uppercase tracking-wider opacity-90">${etiqueta}</p>
+      </div>`;
+    $('#contador').innerHTML =
+      bloque(a, a === 1 ? 'año' : 'años') +
+      '<span class="pb-4 text-2xl opacity-50">·</span>' +
+      bloque(m, m === 1 ? 'mes' : 'meses') +
+      '<span class="pb-4 text-2xl opacity-50">·</span>' +
+      bloque(d, d === 1 ? 'día' : 'días');
+    $('#contador-total').textContent = `${totalDias.toLocaleString('es')} días caminando juntos`;
+  }
+
+  function abrirModalFecha() {
+    $('#input-fecha-inicio').value = fechaInicio || '';
+    $('#error-fecha').classList.add('hidden');
+    $('#modal-fecha').classList.remove('hidden');
+  }
+
+  $('#btn-guardar-fecha').addEventListener('click', async () => {
+    const valor = $('#input-fecha-inicio').value;
+    if (!valor || fechaLocal(valor) > hoyCero()) {
+      $('#error-fecha').classList.remove('hidden');
+      return;
+    }
+    marcaAccionLocal = Date.now();
+    await db(sb.from('config').upsert({ clave: 'fecha_inicio', valor }));
+    fechaInicio = valor;
+    $('#modal-fecha').classList.add('hidden');
+    pintarContador();
+  });
+  $('#btn-editar-fecha').addEventListener('click', abrirModalFecha);
+
+  // ==============================================================
+  //  NAVEGACIÓN ENTRE VISTAS
+  // ==============================================================
+  function irA(vista) {
+    $$('[data-vista]').forEach((s) => s.classList.add('hidden'));
+    const destino = $('#vista-' + vista);
+    destino.classList.remove('hidden');
+    destino.classList.add('anim-in');
+    $$('.nav-btn').forEach((b) => {
+      const activo = b.dataset.ir === vista;
+      b.classList.toggle('text-terracota', activo);
+      b.classList.toggle('opacity-50', !activo);
+    });
+    window.scrollTo({ top: 0 });
+  }
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ir]');
+    if (btn) irA(btn.dataset.ir);
+  });
+
+  // ==============================================================
+  //  MÓDULO: ACTIVIDADES (TO-DO DE PAREJA)
+  // ==============================================================
+  let editandoPlanId = null; // si tiene valor, el formulario está editando ese plan
+
+  $('#btn-toggle-form').addEventListener('click', () => {
+    const f = $('#form-actividad');
+    if (f.classList.contains('hidden')) {
+      // Al abrir para un plan NUEVO, limpia cualquier edición a medias
+      editandoPlanId = null;
+      f.reset();
+      $('#btn-guardar-plan').textContent = 'Guardar plan';
+    }
+    f.classList.toggle('hidden');
+  });
+
+  $('#form-actividad').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const datos = {
+      titulo: $('#act-titulo').value.trim(),
+      descripcion: $('#act-descripcion').value.trim(),
+      fecha: $('#act-fecha').value,
+      categoria: $('#act-categoria').value
+    };
+    marcaAccionLocal = Date.now();
+    if (editandoPlanId) {
+      await db(sb.from('actividades').update(datos).eq('id', editandoPlanId));
+      editandoPlanId = null;
+      avisar('Plan actualizado ✏️');
+    } else {
+      await db(sb.from('actividades').insert({ ...datos, creado_por: usuarioActual }));
+    }
+    e.target.reset();
+    $('#btn-guardar-plan').textContent = 'Guardar plan';
+    $('#form-actividad').classList.add('hidden');
+    await refrescarActividades();
+  });
+
+  function etiquetaRelativa(iso) {
+    const dias = Math.round((fechaLocal(iso) - hoyCero()) / 86400000);
+    if (dias === 0)  return { txt: 'Hoy', urgente: true };
+    if (dias === 1)  return { txt: 'Mañana', urgente: true };
+    if (dias < 0)    return { txt: `Hace ${-dias} día${dias === -1 ? '' : 's'}`, vencida: true };
+    if (dias <= 7)   return { txt: `En ${dias} días`, urgente: true };
+    return { txt: FORMATO_FECHA.format(fechaLocal(iso)), urgente: false };
+  }
+
+  function tarjetaActividad(act) {
+    const rel = etiquetaRelativa(act.fecha);
+    // Solo el perfil que creó el plan puede editarlo o eliminarlo.
+    // Los planes antiguos sin "creado_por" quedan editables por ambos.
+    const esMio = !act.creado_por || act.creado_por === usuarioActual;
+    const colorFecha = act.completada ? 'opacity-50'
+      : rel.vencida ? 'text-terracota font-extrabold'
+      : rel.urgente ? 'text-oliva-dark dark:text-oliva-soft font-extrabold' : 'opacity-60';
+    return `
+      <div class="anim-in flex items-start gap-3 rounded-2xl bg-white dark:bg-noche-800 p-4 shadow-sm">
+        <button data-completar="${act.id}" aria-label="Marcar completada"
+          class="mt-0.5 h-6 w-6 shrink-0 rounded-full border-2 transition active:scale-90
+                 ${act.completada ? 'border-oliva bg-oliva text-white' : 'border-arena-400'}">
+          ${act.completada ? '<svg class="h-full w-full p-0.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>' : ''}
+        </button>
+        <div class="min-w-0 flex-1">
+          <p class="font-bold leading-snug ${act.completada ? 'line-through opacity-60' : ''}">${esc(act.titulo)}</p>
+          ${act.descripcion ? `<p class="mt-0.5 text-xs opacity-70">${esc(act.descripcion)}</p>` : ''}
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="rounded-full px-2 py-0.5 font-bold ${COLORES_CAT[act.categoria] || 'bg-arena-200'}">${esc(act.categoria)}</span>
+            <span class="${colorFecha}">${rel.txt} · ${FORMATO_FECHA.format(fechaLocal(act.fecha))}</span>
+            ${act.creado_por ? `<span class="opacity-50">por ${esc(act.creado_por)}</span>` : ''}
+          </div>
+          ${act.completada ? `
+          <div class="mt-2 flex items-center gap-3 text-[11px] font-bold">
+            <button data-foto-plan="${act.id}" class="text-oliva dark:text-oliva-soft underline">📷 Agregar foto</button>
+            ${numFotos(act.id) ? `<button data-ir="recuerdos" class="opacity-60 underline">${numFotos(act.id)} foto${numFotos(act.id) === 1 ? '' : 's'}</button>` : ''}
+          </div>` : ''}
+        </div>
+        ${esMio ? `
+        <div class="flex flex-col gap-1">
+          <button data-editar-act="${act.id}" aria-label="Editar" class="p-1 opacity-40 active:scale-90 transition">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m16.9 4.5 2.6 2.6L8.1 18.5l-3.6.9.9-3.6L16.9 4.5Z"/></svg>
+          </button>
+          <button data-borrar-act="${act.id}" aria-label="Eliminar" class="p-1 opacity-40 active:scale-90 transition">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>` : ''}
+      </div>`;
+  }
+
+  function pintarFiltros() {
+    const cats = ['Todas', 'Viajes', 'Citas', 'Hogar', 'Crecimiento Personal'];
+    $('#filtros-categoria').innerHTML = cats.map((c) => `
+      <button data-filtro="${c}" class="shrink-0 rounded-full px-3 py-1.5 transition
+        ${filtroCategoria === c ? 'bg-terracota text-white' : 'bg-arena-200 dark:bg-noche-700'}">${c}</button>`).join('');
+  }
+
+  function pintarActividades() {
+    const visibles = actividades.filter((a) => filtroCategoria === 'Todas' || a.categoria === filtroCategoria);
+    const pendientes  = visibles.filter((a) => !a.completada).sort((x, y) => x.fecha.localeCompare(y.fecha));
+    const completadas = visibles.filter((a) =>  a.completada).sort((x, y) => y.fecha.localeCompare(x.fecha));
+
+    $('#lista-pendientes').innerHTML = pendientes.length
+      ? pendientes.map(tarjetaActividad).join('')
+      : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Sin planes pendientes. ¡Hora de soñar algo juntos!</p>';
+
+    $('#bloque-completadas').classList.toggle('hidden', completadas.length === 0);
+    $('#num-completadas').textContent = completadas.length;
+    $('#lista-completadas').innerHTML = completadas.map(tarjetaActividad).join('');
+    pintarFiltros();
+  }
+
+  function pintarProximos() {
+    const limite = new Date(hoyCero()); limite.setDate(limite.getDate() + 7);
+    const proximos = actividades
+      .filter((a) => !a.completada && fechaLocal(a.fecha) >= hoyCero() && fechaLocal(a.fecha) <= limite)
+      .sort((x, y) => x.fecha.localeCompare(y.fecha));
+    $('#lista-proximos').innerHTML = proximos.length
+      ? proximos.map(tarjetaActividad).join('')
+      : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Nada agendado esta semana. La Ruleta de Citas puede ayudar.</p>';
+  }
+
+  document.addEventListener('click', async (e) => {
+    const comp = e.target.closest('[data-completar]');
+    if (comp) {
+      const act = actividades.find((a) => a.id === comp.dataset.completar);
+      marcaAccionLocal = Date.now();
+      await db(sb.from('actividades').update({ completada: !act.completada }).eq('id', act.id));
+      await refrescarActividades();
+      return;
+    }
+    const editar = e.target.closest('[data-editar-act]');
+    if (editar) {
+      const act = actividades.find((a) => a.id === editar.dataset.editarAct);
+      // Seguridad: solo el creador del plan puede editarlo.
+      if (act.creado_por && act.creado_por !== usuarioActual) {
+        avisar('Solo ' + act.creado_por + ' puede editar este plan 🔒');
+        return;
+      }
+      editandoPlanId = act.id;
+      $('#act-titulo').value = act.titulo;
+      $('#act-descripcion').value = act.descripcion || '';
+      $('#act-fecha').value = act.fecha;
+      $('#act-categoria').value = act.categoria;
+      $('#btn-guardar-plan').textContent = 'Actualizar plan';
+      irA('planes'); // por si se editó desde "Próximos 7 días" en el inicio
+      $('#form-actividad').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const borrar = e.target.closest('[data-borrar-act]');
+    if (borrar) {
+      const act = actividades.find((a) => a.id === borrar.dataset.borrarAct);
+      // Seguridad: solo el creador del plan puede eliminarlo.
+      if (act && act.creado_por && act.creado_por !== usuarioActual) {
+        avisar('Solo ' + act.creado_por + ' puede eliminar este plan 🔒');
+        return;
+      }
+      if (confirm('¿Eliminar este plan?')) {
+        marcaAccionLocal = Date.now();
+        await db(sb.from('actividades').delete().eq('id', borrar.dataset.borrarAct));
+        await refrescarActividades();
+      }
+      return;
+    }
+    const filtro = e.target.closest('[data-filtro]');
+    if (filtro) { filtroCategoria = filtro.dataset.filtro; pintarActividades(); }
+  });
+
+  // ==============================================================
+  //  MÓDULO: FRASCO DE LA GRATITUD
+  // ==============================================================
+  let editandoGratitudId = null; // si tiene valor, el formulario está editando ese mensaje
+
+  function salirEdicionGratitud() {
+    editandoGratitudId = null;
+    $('#gratitud-texto').value = '';
+    $('#btn-guardar-gratitud').textContent = 'Echar al frasco';
+    $('#btn-cancelar-gratitud').classList.add('hidden');
+  }
+  $('#btn-cancelar-gratitud').addEventListener('click', salirEdicionGratitud);
+
+  $('#form-gratitud').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const texto = $('#gratitud-texto').value.trim();
+    marcaAccionLocal = Date.now();
+    if (editandoGratitudId) {
+      await db(sb.from('gratitudes').update({ texto }).eq('id', editandoGratitudId));
+      salirEdicionGratitud();
+      avisar('Mensaje actualizado ✏️');
+    } else {
+      await db(sb.from('gratitudes').insert({
+        autor: usuarioActual,
+        texto,
+        user_id: miUserId   // dueño del mensaje: solo él puede editarlo/eliminarlo
+      }));
+    }
+    e.target.reset();
+    await refrescarGratitudes();
+  });
+
+  // Emojis disponibles para responder al mensaje del otro
+  const EMOJIS_REACCION = ['❤️', '💙', '🥹', '😂', '🙏', '😍'];
+
+  function pintarGratitudes() {
+    $('#num-gratitud').textContent = gratitudes.length;
+    $('#lista-gratitud').innerHTML = gratitudes.length
+      ? gratitudes.map((g) => {
+          const esPrimera = g.autor === NOMBRE_1;   // primera persona de USUARIOS → color terracota
+          // Es mío si coincide el user_id (o, en mensajes antiguos sin dueño, el nombre)
+          const esMio = g.user_id ? g.user_id === miUserId : g.autor === usuarioActual;
+          return `
+          <div class="anim-in rounded-2xl border-l-4 ${esPrimera ? 'border-terracota' : 'border-oliva'} bg-white dark:bg-noche-800 p-4 shadow-sm">
+            <p class="text-sm leading-relaxed">${esc(g.texto)}</p>
+            ${g.reaccion && esMio ? `<p class="mt-1 text-[11px] opacity-60">Respondió con ${g.reaccion}</p>` : ''}
+            <div class="mt-2 flex items-center justify-between text-[11px] opacity-60">
+              <span class="font-bold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(g.autor)} ${g.reaccion ? `<span class="ml-1 rounded-full bg-arena-100 dark:bg-noche-700 px-1.5 py-0.5">${g.reaccion}</span>` : ''}</span>
+              <span>${FORMATO_FECHA.format(new Date(g.created_at))}</span>
+              ${esMio ? `<span class="flex gap-2"><button data-editar-grat="${g.id}" class="underline">editar</button><button data-borrar-grat="${g.id}" class="underline">eliminar</button></span>` : ''}
+            </div>
+            ${!esMio ? `
+            <div class="mt-2 flex gap-1 border-t border-arena-100 dark:border-noche-700 pt-2">
+              ${EMOJIS_REACCION.map((em) => `
+                <button data-reaccionar="${g.id}" data-emoji="${em}"
+                  class="rounded-full px-2 py-1 text-base transition active:scale-90 ${g.reaccion === em ? 'bg-terracota-soft dark:bg-noche-600' : 'opacity-50'}">${em}</button>`).join('')}
+            </div>` : ''}
+          </div>`;
+        }).join('')
+      : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">El frasco está vacío. Empiecen hoy con un "gracias".</p>';
+  }
+
+  // Reaccionar al mensaje del otro (tocar el mismo emoji la quita)
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-reaccionar]');
+    if (!b) return;
+    const g = gratitudes.find((x) => x.id === b.dataset.reaccionar);
+    const nueva = g.reaccion === b.dataset.emoji ? '' : b.dataset.emoji;
+    marcaAccionLocal = Date.now();
+    await db(sb.from('gratitudes').update({ reaccion: nueva }).eq('id', g.id));
+    await refrescarGratitudes();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const ed = e.target.closest('[data-editar-grat]');
+    if (ed) {
+      const g = gratitudes.find((x) => x.id === ed.dataset.editarGrat);
+      editandoGratitudId = g.id;
+      $('#gratitud-texto').value = g.texto;
+      $('#btn-guardar-gratitud').textContent = 'Actualizar mensaje';
+      $('#btn-cancelar-gratitud').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      $('#gratitud-texto').focus();
+      return;
+    }
+    const b = e.target.closest('[data-borrar-grat]');
+    if (b && confirm('¿Eliminar este mensaje?')) {
+      marcaAccionLocal = Date.now();
+      await db(sb.from('gratitudes').delete().eq('id', b.dataset.borrarGrat));
+      if (editandoGratitudId === b.dataset.borrarGrat) salirEdicionGratitud();
+      await refrescarGratitudes();
+    }
+  });
+
+  // ==============================================================
+  //  MÓDULO: CHECK-IN EMOCIONAL SEMANAL
+  // ==============================================================
+  function lunesDeEstaSemana() {
+    const h = hoyCero();
+    const dia = (h.getDay() + 6) % 7; // 0 = lunes
+    h.setDate(h.getDate() - dia);
+    return h;
+  }
+  $('#checkin-semana').textContent = 'semana del ' + FORMATO_FECHA.format(lunesDeEstaSemana());
+
+  let reaccionElegida = 0;
+  $('#ci-reacciones').addEventListener('click', (e) => {
+    const b = e.target.closest('.reaccion');
+    if (!b) return;
+    reaccionElegida = Number(b.dataset.valor);
+    $$('.reaccion').forEach((r) => r.classList.toggle('bg-terracota-soft', r === b));
+    $$('.reaccion').forEach((r) => r.classList.toggle('dark:bg-noche-600', r === b));
+  });
+
+  $('#form-checkin').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!reaccionElegida) { avisar('Elige una reacción en la pregunta 3.'); return; }
+    const l = lunesDeEstaSemana();
+    const semanaISO = `${l.getFullYear()}-${String(l.getMonth() + 1).padStart(2, '0')}-${String(l.getDate()).padStart(2, '0')}`;
+    marcaAccionLocal = Date.now();
+    await db(sb.from('checkins').insert({
+      autor: usuarioActual,
+      user_id: miUserId,   // dueño del check-in: solo él puede eliminarlo
+      semana: semanaISO,
+      comunicacion: Number($('#ci-comunicacion').value),
+      tiempo: Number($('#ci-tiempo').value),
+      animo: reaccionElegida,
+      feliz: $('#ci-feliz').value.trim(),
+      mejorar: $('#ci-mejorar').value.trim()
+    }));
+    e.target.reset();
+    reaccionElegida = 0;
+    $$('.reaccion').forEach((r) => r.classList.remove('bg-terracota-soft', 'dark:bg-noche-600'));
+    await refrescarCheckins();
+    avisar('Check-in guardado. Gracias por cuidar la relación 💛');
+  });
+
+  const puntos = (valor, color) => Array.from({ length: 5 }, (_, i) =>
+    `<span class="inline-block h-2 w-2 rounded-full ${i < valor ? color : 'bg-arena-300 dark:bg-noche-600'}"></span>`).join(' ');
+  const EMOJIS_ANIMO = { 1: '😔', 2: '😕', 3: '😐', 4: '🙂', 5: '🥰' };
+
+  function pintarCheckins() {
+    $('#lista-checkins').innerHTML = checkins.length
+      ? checkins.map((c) => {
+          const esPrimera = c.autor === NOMBRE_1;   // primera persona de USUARIOS → color terracota
+          const esMio = c.user_id ? c.user_id === miUserId : c.autor === usuarioActual;
+          return `
+          <div class="anim-in rounded-2xl bg-white dark:bg-noche-800 p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-extrabold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(c.autor)} ${EMOJIS_ANIMO[c.animo] || ''}</span>
+              <span class="text-[11px] opacity-60">Semana del ${FORMATO_FECHA.format(fechaLocal(c.semana))}</span>
+            </div>
+            <div class="mt-3 space-y-1.5 text-xs">
+              <p>Comunicación&nbsp; ${puntos(c.comunicacion, 'bg-terracota')}</p>
+              <p>Tiempo juntos&nbsp; ${puntos(c.tiempo, 'bg-oliva')}</p>
+              ${c.feliz ? `<p class="mt-2"><span class="font-bold">Me hizo feliz:</span> ${esc(c.feliz)}</p>` : ''}
+              ${c.mejorar ? `<p><span class="font-bold">Podemos mejorar:</span> ${esc(c.mejorar)}</p>` : ''}
+            </div>
+            ${esMio ? `<button data-borrar-ci="${c.id}" class="mt-2 text-[11px] opacity-50 underline">eliminar</button>` : ''}
+          </div>`;
+        }).join('')
+      : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Aún no hay check-ins. El primero puede ser este fin de semana.</p>';
+  }
+
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-borrar-ci]');
+    if (b && confirm('¿Eliminar este check-in?')) {
+      marcaAccionLocal = Date.now();
+      await db(sb.from('checkins').delete().eq('id', b.dataset.borrarCi));
+      await refrescarCheckins();
+    }
+  });
+
+  // ==============================================================
+  //  MÓDULO: FOTOS DE LOS PLANES (RECUERDOS)
+  //  Las imágenes se comprimen en el dispositivo y se suben al
+  //  bucket privado "fotos" de Supabase Storage.
+  // ==============================================================
+  const numFotos = (actividadId) => fotos.filter((f) => f.actividad_id === actividadId).length;
+  let planFotoActual = null;   // plan al que se le están agregando fotos
+  let fotoAbierta = null;      // foto mostrada en el visor
+
+  // Reduce la imagen a máx. 1600px de lado y la convierte a JPEG (ahorra datos y espacio)
+  async function comprimirImagen(archivo, maxLado = 1600, calidad = 0.8) {
+    const img = await createImageBitmap(archivo);
+    const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * escala);
+    canvas.height = Math.round(img.height * escala);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return new Promise((res, rej) => canvas.toBlob((b) => b ? res(b) : rej(new Error('toBlob')), 'image/jpeg', calidad));
+  }
+
+  // El botón "Agregar foto" de un plan abre el selector de archivos
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-foto-plan]');
+    if (b) { planFotoActual = b.dataset.fotoPlan; $('#input-foto').click(); }
+  });
+
+  $('#input-foto').addEventListener('change', async (e) => {
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    if (!archivos.length || !planFotoActual) return;
+    const plan = actividades.find((a) => a.id === planFotoActual);
+    avisar(`Subiendo ${archivos.length} foto${archivos.length === 1 ? '' : 's'}...`);
+    marcaAccionLocal = Date.now();
+    for (const archivo of archivos) {
+      let blob;
+      try { blob = await comprimirImagen(archivo); }
+      catch { blob = archivo; } // si el formato no se puede comprimir, se sube original
+      const ruta = `${planFotoActual}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+      const { error } = await sb.storage.from('fotos').upload(ruta, blob, { contentType: 'image/jpeg' });
+      if (error) { avisar('Error al subir: ' + error.message); return; }
+      await db(sb.from('fotos').insert({
+        actividad_id: planFotoActual,
+        titulo_plan: plan ? plan.titulo : '',
+        ruta,
+        subido_por: usuarioActual
+      }));
+    }
+    avisar('Fotos guardadas 📷');
+    await refrescarFotos();
+  });
+
+  // Galería agrupada por plan
+  function pintarRecuerdos() {
+    if (!fotos.length) {
+      $('#lista-recuerdos').innerHTML = '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Aún no hay recuerdos. Completen un plan y suban su primera foto.</p>';
+      return;
+    }
+    const grupos = new Map();
+    fotos.forEach((f) => {
+      const clave = f.actividad_id || 'otros';
+      if (!grupos.has(clave)) grupos.set(clave, { titulo: f.titulo_plan || 'Otros recuerdos', lista: [] });
+      grupos.get(clave).lista.push(f);
+    });
+    $('#lista-recuerdos').innerHTML = [...grupos.values()].map((g) => `
+      <div class="anim-in">
+        <h3 class="mb-2 text-sm font-extrabold">${esc(g.titulo)} <span class="opacity-50">(${g.lista.length})</span></h3>
+        <div class="grid grid-cols-3 gap-1.5">
+          ${g.lista.map((f) => `
+            <button data-ver-foto="${f.id}" class="aspect-square overflow-hidden rounded-xl bg-arena-200 dark:bg-noche-700 active:scale-95 transition">
+              ${urlsFotos[f.ruta] ? `<img src="${urlsFotos[f.ruta]}" loading="lazy" class="h-full w-full object-cover" alt="">` : '<span class="text-xs opacity-50">...</span>'}
+            </button>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  // Visor a pantalla completa
+  document.addEventListener('click', (e) => {
+    const ver = e.target.closest('[data-ver-foto]');
+    if (!ver) return;
+    fotoAbierta = fotos.find((x) => x.id === ver.dataset.verFoto);
+    $('#visor-img').src = urlsFotos[fotoAbierta.ruta] || '';
+    $('#visor-info').textContent = [fotoAbierta.titulo_plan, fotoAbierta.subido_por, FORMATO_FECHA.format(new Date(fotoAbierta.created_at))].filter(Boolean).join(' · ');
+    $('#visor-foto').classList.remove('hidden');
+  });
+  $('#btn-cerrar-visor').addEventListener('click', () => {
+    $('#visor-foto').classList.add('hidden');
+    $('#visor-img').src = '';
+    fotoAbierta = null;
+  });
+  $('#btn-borrar-foto').addEventListener('click', async () => {
+    if (!fotoAbierta || !confirm('¿Eliminar esta foto para ambos?')) return;
+    marcaAccionLocal = Date.now();
+    await sb.storage.from('fotos').remove([fotoAbierta.ruta]); // archivo
+    await db(sb.from('fotos').delete().eq('id', fotoAbierta.id)); // registro
+    $('#btn-cerrar-visor').click();
+    await refrescarFotos();
+  });
+
+  // ==============================================================
+  //  MÓDULO: REUNIONES MENSUALES
+  //  Cada reunión tiene fecha, notas libres y una checklist de
+  //  acuerdos (jsonb) que ambos pueden marcar durante el mes.
+  // ==============================================================
+  let itemsBorrador = []; // puntos de la checklist antes de guardar la reunión
+
+  $('#btn-toggle-reunion').addEventListener('click', () => {
+    const f = $('#form-reunion');
+    f.classList.toggle('hidden');
+    if (!f.classList.contains('hidden') && !$('#reu-fecha').value) {
+      const h = hoyCero(); // por defecto, la reunión es hoy
+      $('#reu-fecha').value = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+    }
+  });
+
+  function pintarItemsBorrador() {
+    $('#reu-items-borrador').innerHTML = itemsBorrador.map((t, i) => `
+      <li class="flex items-center justify-between rounded-lg bg-arena-100 dark:bg-noche-700 px-3 py-1.5">
+        <span>${esc(t)}</span>
+        <button type="button" data-quitar-item="${i}" class="px-1 font-bold opacity-50">✕</button>
+      </li>`).join('');
+  }
+
+  $('#btn-agregar-item').addEventListener('click', () => {
+    const v = $('#reu-item').value.trim();
+    if (!v) return;
+    itemsBorrador.push(v);
+    $('#reu-item').value = '';
+    pintarItemsBorrador();
+  });
+  // Enter en el campo de punto agrega el punto (sin enviar el formulario)
+  $('#reu-item').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); $('#btn-agregar-item').click(); }
+  });
+
+  $('#form-reunion').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    marcaAccionLocal = Date.now();
+    await db(sb.from('reuniones').insert({
+      fecha: $('#reu-fecha').value,
+      titulo: $('#reu-titulo').value.trim(),
+      notas: $('#reu-notas').value.trim(),
+      items: itemsBorrador.map((t) => ({ t, ok: false })),
+      creado_por: usuarioActual
+    }));
+    e.target.reset();
+    itemsBorrador = [];
+    pintarItemsBorrador();
+    $('#form-reunion').classList.add('hidden');
+    await refrescarReuniones();
+  });
+
+  function pintarReuniones() {
+    $('#lista-reuniones').innerHTML = reuniones.length
+      ? reuniones.map((r) => {
+          const items = r.items || [];
+          const hechos = items.filter((i) => i.ok).length;
+          return `
+          <div class="anim-in rounded-2xl bg-white dark:bg-noche-800 p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <p class="font-extrabold">${esc(r.titulo || 'Reunión de pareja')}</p>
+                <p class="text-[11px] opacity-60">${FORMATO_FECHA.format(fechaLocal(r.fecha))}${r.creado_por ? ' · por ' + esc(r.creado_por) : ''}</p>
+              </div>
+              <button data-borrar-reu="${r.id}" aria-label="Eliminar" class="p-1 opacity-40 active:scale-90 transition">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+              </button>
+            </div>
+            ${r.notas ? `<p class="mt-2 whitespace-pre-line text-sm leading-relaxed">${esc(r.notas)}</p>` : ''}
+            ${items.length ? `
+              <div class="mt-3">
+                <p class="text-[11px] font-bold opacity-60">Acuerdos · ${hechos}/${items.length} cumplidos</p>
+                <div class="mt-1 space-y-1">
+                  ${items.map((it, i) => `
+                    <button data-reu="${r.id}" data-idx="${i}" class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition active:bg-arena-100 dark:active:bg-noche-700">
+                      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 text-xs ${it.ok ? 'border-oliva bg-oliva text-white' : 'border-arena-400'}">${it.ok ? '✓' : ''}</span>
+                      <span class="${it.ok ? 'line-through opacity-60' : ''}">${esc(it.t)}</span>
+                    </button>`).join('')}
+                </div>
+              </div>` : ''}
+            <button data-punto-reu="${r.id}" class="mt-3 text-[11px] font-bold text-oliva dark:text-oliva-soft underline">+ Agregar punto</button>
+          </div>`;
+        }).join('')
+      : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Aún no hay reuniones. Agenden la primera con un café de por medio.</p>';
+  }
+
+  // Delegación: quitar punto del borrador, marcar acuerdo, agregar punto, borrar reunión
+  document.addEventListener('click', async (e) => {
+    const quitar = e.target.closest('[data-quitar-item]');
+    if (quitar) {
+      itemsBorrador.splice(Number(quitar.dataset.quitarItem), 1);
+      pintarItemsBorrador();
+      return;
+    }
+    const chk = e.target.closest('[data-reu]');
+    if (chk) {
+      const r = reuniones.find((x) => x.id === chk.dataset.reu);
+      const items = (r.items || []).map((it, i) => i === Number(chk.dataset.idx) ? { ...it, ok: !it.ok } : it);
+      marcaAccionLocal = Date.now();
+      await db(sb.from('reuniones').update({ items }).eq('id', r.id));
+      await refrescarReuniones();
+      return;
+    }
+    const mas = e.target.closest('[data-punto-reu]');
+    if (mas) {
+      const texto = prompt('Nuevo punto para la checklist:');
+      if (!texto || !texto.trim()) return;
+      const r = reuniones.find((x) => x.id === mas.dataset.puntoReu);
+      marcaAccionLocal = Date.now();
+      await db(sb.from('reuniones').update({ items: [...(r.items || []), { t: texto.trim(), ok: false }] }).eq('id', r.id));
+      await refrescarReuniones();
+      return;
+    }
+    const del = e.target.closest('[data-borrar-reu]');
+    if (del && confirm('¿Eliminar esta reunión y sus notas?')) {
+      marcaAccionLocal = Date.now();
+      await db(sb.from('reuniones').delete().eq('id', del.dataset.borrarReu));
+      await refrescarReuniones();
+    }
+  });
+
+  // ==============================================================
+  //  MÓDULO: CALENDARIO ÍNTIMO
+  //  Calendario mensual compartido: tocar un día lo agenda,
+  //  tocarlo de nuevo lo quita. Sincronizado para ambos.
+  // ==============================================================
+  let mesIntimo = (() => { const h = hoyCero(); return new Date(h.getFullYear(), h.getMonth(), 1); })();
+  const FORMATO_MES = new Intl.DateTimeFormat('es', { month: 'long', year: 'numeric' });
+  const isoDe = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  async function refrescarIntimo() {
+    diasIntimos = await db(sb.from('calendario_intimo').select('*').order('fecha'));
+    pintarCalendarioIntimo();
+  }
+
+  function pintarCalendarioIntimo() {
+    $('#intimo-mes').textContent = FORMATO_MES.format(mesIntimo);
+    const marcados = new Set(diasIntimos.map((x) => x.fecha));
+    const anio = mesIntimo.getFullYear(), mes = mesIntimo.getMonth();
+    const offset = (new Date(anio, mes, 1).getDay() + 6) % 7; // columna inicial (0 = lunes)
+    const numDias = new Date(anio, mes + 1, 0).getDate();
+    const hoyIso = isoDe(hoyCero());
+    let celdas = '';
+    for (let i = 0; i < offset; i++) celdas += '<div></div>';
+    for (let d = 1; d <= numDias; d++) {
+      const iso = isoDe(new Date(anio, mes, d));
+      const marcado = marcados.has(iso);
+      const pasado = iso < hoyIso;
+      celdas += `
+        <button data-dia-intimo="${iso}" class="aspect-square rounded-xl text-sm font-bold transition active:scale-90
+          ${marcado ? 'bg-terracota text-white' : 'bg-arena-100 dark:bg-noche-700'}
+          ${pasado ? ' opacity-40' : ''}${iso === hoyIso ? ' ring-2 ring-oliva' : ''}">${d}</button>`;
+    }
+    $('#intimo-grid').innerHTML = celdas;
+
+    // Próximas fechas agendadas (las 3 más cercanas desde hoy)
+    const proximas = diasIntimos.filter((x) => x.fecha >= hoyIso).slice(0, 3);
+    $('#intimo-proximos').innerHTML = proximas.length
+      ? proximas.map((p) => `<li><span class="font-bold text-terracota">${etiquetaRelativa(p.fecha).txt}</span> · ${FORMATO_FECHA.format(fechaLocal(p.fecha))}</li>`).join('')
+      : '<li class="opacity-60">Nada agendado aún. Toquen un día del calendario.</li>';
+  }
+
+  $('#intimo-prev').addEventListener('click', () => {
+    mesIntimo = new Date(mesIntimo.getFullYear(), mesIntimo.getMonth() - 1, 1);
+    pintarCalendarioIntimo();
+  });
+  $('#intimo-next').addEventListener('click', () => {
+    mesIntimo = new Date(mesIntimo.getFullYear(), mesIntimo.getMonth() + 1, 1);
+    pintarCalendarioIntimo();
+  });
+
+  // Agendar / quitar un día
+  document.addEventListener('click', async (e) => {
+    const dia = e.target.closest('[data-dia-intimo]');
+    if (!dia) return;
+    const iso = dia.dataset.diaIntimo;
+    marcaAccionLocal = Date.now();
+    const existente = diasIntimos.find((x) => x.fecha === iso);
+    if (existente) {
+      await db(sb.from('calendario_intimo').delete().eq('id', existente.id));
+    } else {
+      // upsert: evita duplicados si ambos tocan el mismo día a la vez
+      await db(sb.from('calendario_intimo').upsert({ fecha: iso, creado_por: usuarioActual }, { onConflict: 'fecha' }));
+    }
+    await refrescarIntimo();
+  });
+
+  // ==============================================================
+  //  MÓDULO: RULETA DE CITAS (no necesita base de datos)
+  // ==============================================================
+  const IDEAS_CITA = [
+    { t: 'Picnic al atardecer',          d: 'Una manta, snacks favoritos y un lugar con buena vista. Sin celulares.' },
+    { t: 'Chef por una noche',           d: 'Elijan una receta que nunca hayan hecho y cocínenla juntos desde cero.' },
+    { t: 'Maratón temático',             d: 'Tres películas conectadas por un tema (un país, un actor, una década) con comida acorde.' },
+    { t: 'Caminata sin rumbo',           d: 'Salgan a caminar y en cada esquina uno decide la dirección. Terminen en un café nuevo.' },
+    { t: 'Noche de juegos con apuestas', d: 'Juegos de mesa o cartas. El perdedor cumple un reto dulce que ponga el ganador.' },
+    { t: 'Cena a ciegas',                d: 'Cada uno pide en secreto el plato del otro a domicilio. Sorpresa total en la mesa.' },
+    { t: 'Sesión de fotos improvisada',  d: 'Treinta minutos, solo el celular y los rincones favoritos de su ciudad o su casa.' },
+    { t: 'Playlist y pista de baile',    d: 'Cada uno arma 5 canciones con significado. Se bailan todas en la sala, sin excusas.' },
+    { t: 'Escapada a un pueblo cercano', d: 'Mapa, antojo de carretera y un pueblo a menos de 2 horas. Vuelvan con una foto y un dulce típico.' },
+    { t: 'Retrato a mano alzada',        d: 'Papel y lápiz: cada uno dibuja al otro en 10 minutos. Risas garantizadas, se enmarca el mejor.' }
+  ];
+
+  $('#btn-girar').addEventListener('click', () => {
+    const tarjeta = $('#tarjeta-ruleta');
+    const btn = $('#btn-girar');
+    btn.disabled = true;
+    tarjeta.classList.add('girando');
+    let vueltas = 0;
+    const intervalo = setInterval(() => {
+      const idea = IDEAS_CITA[Math.floor(Math.random() * IDEAS_CITA.length)];
+      $('#ruleta-titulo').textContent = idea.t;
+      $('#ruleta-detalle').textContent = '...';
+      if (++vueltas >= 12) {
+        clearInterval(intervalo);
+        const final = IDEAS_CITA[Math.floor(Math.random() * IDEAS_CITA.length)];
+        $('#ruleta-titulo').textContent = final.t;
+        $('#ruleta-detalle').textContent = final.d;
+        tarjeta.classList.remove('girando');
+        btn.disabled = false;
+      }
+    }, 100);
+  });
+
+  // ==============================================================
+  //  ARRANQUE
+  // ==============================================================
+  (async function arrancar() {
+    if (!configurada) {
+      // Aún no se pegaron las claves: se muestra el aviso en el login
+      $('#aviso-config').classList.remove('hidden');
+      $('#btn-login').disabled = true;
+      return;
+    }
+    // ¿Hay sesión guardada de una visita anterior? Entra directo.
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) iniciarApp(session);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Configuración privada: claves de Supabase y correos reales
+config.js
+
+# Copias históricas locales: el historial de git ya cumple esa función
+respaldo-*.html
+
+# Sistema operativo / editores
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
