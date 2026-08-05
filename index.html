@@ -100,9 +100,21 @@
   <div id="visor-foto" class="hidden fixed inset-0 z-50 flex flex-col bg-black/95 p-4">
     <div class="flex items-center justify-between gap-2 text-white">
       <p id="visor-info" class="min-w-0 truncate text-xs opacity-80"></p>
-      <button id="btn-cerrar-visor" aria-label="Cerrar" class="shrink-0 p-2 text-2xl leading-none">✕</button>
+      <div class="flex shrink-0 items-center gap-3">
+        <span id="visor-contador" class="text-xs font-bold tabular-nums opacity-70"></span>
+        <button id="btn-cerrar-visor" aria-label="Cerrar" class="p-2 text-2xl leading-none">✕</button>
+      </div>
     </div>
-    <img id="visor-img" class="my-auto max-h-[78vh] w-full rounded-2xl object-contain" alt="Foto del recuerdo" />
+
+    <!-- Zona de la foto: se pasa deslizando el dedo o con las flechas -->
+    <div id="visor-lienzo" class="relative my-auto touch-pan-y">
+      <img id="visor-img" class="max-h-[78vh] w-full select-none rounded-2xl object-contain" alt="Foto del recuerdo" draggable="false" />
+      <button id="btn-foto-anterior" aria-label="Foto anterior"
+              class="absolute left-1 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-3 py-2 text-3xl leading-none text-white backdrop-blur active:scale-90 transition">‹</button>
+      <button id="btn-foto-siguiente" aria-label="Foto siguiente"
+              class="absolute right-1 top-1/2 -translate-y-1/2 rounded-full bg-black/40 px-3 py-2 text-3xl leading-none text-white backdrop-blur active:scale-90 transition">›</button>
+    </div>
+
     <button id="btn-borrar-foto" class="mx-auto mb-2 rounded-full bg-white/15 px-5 py-2 text-xs font-bold text-white active:scale-95 transition">Eliminar foto</button>
   </div>
 
@@ -1181,27 +1193,85 @@
       </div>`).join('');
   }
 
-  // Visor a pantalla completa
+  // ---------- Visor a pantalla completa ----------
+  // Se navega entre las fotos del mismo plan: el mismo grupo que se ve
+  // junto en la galería. Se pasa deslizando el dedo, con las flechas de
+  // los lados o con el teclado.
+  let fotosVisor  = [];   // fotos por las que se puede ir pasando
+  let indiceVisor = 0;
+
+  const grupoDe = (f) => f.actividad_id || 'otros';
+
+  function mostrarFotoVisor(i) {
+    if (!fotosVisor.length) return;
+    const total = fotosVisor.length;
+    indiceVisor = (i % total + total) % total;   // circular: de la última pasa a la primera
+    fotoAbierta = fotosVisor[indiceVisor];
+    $('#visor-img').src = urlsFotos[fotoAbierta.ruta] || '';
+    $('#visor-info').textContent = [fotoAbierta.titulo_plan, fotoAbierta.subido_por, FORMATO_FECHA.format(new Date(fotoAbierta.created_at))].filter(Boolean).join(' · ');
+    $('#visor-contador').textContent = total > 1 ? `${indiceVisor + 1} / ${total}` : '';
+    $('#btn-foto-anterior').classList.toggle('hidden', total < 2);
+    $('#btn-foto-siguiente').classList.toggle('hidden', total < 2);
+    // Adelanta la carga de las vecinas para que el paso se sienta instantáneo
+    [indiceVisor - 1, indiceVisor + 1].forEach((j) => {
+      const vecina = fotosVisor[(j % total + total) % total];
+      if (vecina && urlsFotos[vecina.ruta]) new Image().src = urlsFotos[vecina.ruta];
+    });
+  }
+
   document.addEventListener('click', (e) => {
     const ver = e.target.closest('[data-ver-foto]');
     if (!ver) return;
-    fotoAbierta = fotos.find((x) => x.id === ver.dataset.verFoto);
-    $('#visor-img').src = urlsFotos[fotoAbierta.ruta] || '';
-    $('#visor-info').textContent = [fotoAbierta.titulo_plan, fotoAbierta.subido_por, FORMATO_FECHA.format(new Date(fotoAbierta.created_at))].filter(Boolean).join(' · ');
+    const foto = fotos.find((x) => x.id === ver.dataset.verFoto);
+    if (!foto) return;
+    fotosVisor = fotos.filter((f) => grupoDe(f) === grupoDe(foto));
+    mostrarFotoVisor(fotosVisor.findIndex((f) => f.id === foto.id));
     $('#visor-foto').classList.remove('hidden');
   });
+
+  $('#btn-foto-anterior').addEventListener('click', () => mostrarFotoVisor(indiceVisor - 1));
+  $('#btn-foto-siguiente').addEventListener('click', () => mostrarFotoVisor(indiceVisor + 1));
+
+  // Deslizar con el dedo (solo si el gesto es claramente horizontal)
+  let xInicio = null, yInicio = null;
+  $('#visor-lienzo').addEventListener('touchstart', (e) => {
+    xInicio = e.changedTouches[0].clientX;
+    yInicio = e.changedTouches[0].clientY;
+  }, { passive: true });
+  $('#visor-lienzo').addEventListener('touchend', (e) => {
+    if (xInicio === null) return;
+    const dx = e.changedTouches[0].clientX - xInicio;
+    const dy = e.changedTouches[0].clientY - yInicio;
+    xInicio = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) mostrarFotoVisor(indiceVisor + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  // Teclado (para cuando la abren desde el computador)
+  document.addEventListener('keydown', (e) => {
+    if ($('#visor-foto').classList.contains('hidden')) return;
+    if (e.key === 'ArrowLeft')  mostrarFotoVisor(indiceVisor - 1);
+    if (e.key === 'ArrowRight') mostrarFotoVisor(indiceVisor + 1);
+    if (e.key === 'Escape')     $('#btn-cerrar-visor').click();
+  });
+
   $('#btn-cerrar-visor').addEventListener('click', () => {
     $('#visor-foto').classList.add('hidden');
     $('#visor-img').src = '';
     fotoAbierta = null;
+    fotosVisor = [];
   });
+
   $('#btn-borrar-foto').addEventListener('click', async () => {
     if (!fotoAbierta || !confirm('¿Eliminar esta foto para ambos?')) return;
+    const borrada = fotoAbierta;
     marcaAccionLocal = Date.now();
-    await sb.storage.from('fotos').remove([fotoAbierta.ruta]); // archivo
-    await db(sb.from('fotos').delete().eq('id', fotoAbierta.id)); // registro
-    $('#btn-cerrar-visor').click();
+    await sb.storage.from('fotos').remove([borrada.ruta]); // archivo
+    await db(sb.from('fotos').delete().eq('id', borrada.id)); // registro
     await refrescarFotos();
+    // Si al plan le quedan fotos, seguimos en el visor con la siguiente
+    fotosVisor = fotos.filter((f) => grupoDe(f) === grupoDe(borrada));
+    if (fotosVisor.length) mostrarFotoVisor(indiceVisor);
+    else $('#btn-cerrar-visor').click();
   });
 
   // ==============================================================
