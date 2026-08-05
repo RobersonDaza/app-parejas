@@ -315,11 +315,14 @@ create policy "pareja_intimo" on calendario_intimo for all to authenticated
 --  8. Storage: las fotos también estaban abiertas
 --
 --  Antes bastaba con estar autenticado para leer CUALQUIER foto del
---  bucket. Ahora la ruta debe empezar por el id de tu pareja.
+--  bucket. Ahora las rutas nuevas empiezan por el id de la pareja:
+--      <pareja_id>/<actividad_id>/<archivo>.jpg
 --
---  La condición `name not like '%/%'` es el puente para las fotos que
---  ya existen (guardadas en la raíz). Quítala en cuanto corras el
---  script que las mueve.
+--  Las fotos que ya existen están en  <actividad_id>/<archivo>.jpg,
+--  sin el prefijo. El puente para ellas no puede mirar la ruta: mira
+--  la tabla `fotos`, donde cada archivo ya tiene su dueño. Es preciso
+--  (solo alcanza a las de tu pareja) y se cae solo cuando muevas los
+--  archivos y borres las dos cláusulas `or exists (...)`.
 -- ------------------------------------------------------------
 drop policy if exists "fotos_ver"    on storage.objects;
 drop policy if exists "fotos_subir"  on storage.objects;
@@ -328,9 +331,13 @@ drop policy if exists "fotos_borrar" on storage.objects;
 create policy "fotos_ver" on storage.objects for select to authenticated
   using (
     bucket_id = 'fotos'
-    and ((storage.foldername(name))[1] = mi_pareja()::text or name not like '%/%')
+    and (
+      (storage.foldername(name))[1] = mi_pareja()::text
+      or exists (select 1 from fotos f where f.ruta = storage.objects.name and f.pareja_id = mi_pareja())
+    )
   );
 
+-- Al subir no hay puente: todo lo nuevo va bajo el id de la pareja
 create policy "fotos_subir" on storage.objects for insert to authenticated
   with check (
     bucket_id = 'fotos'
@@ -340,7 +347,10 @@ create policy "fotos_subir" on storage.objects for insert to authenticated
 create policy "fotos_borrar" on storage.objects for delete to authenticated
   using (
     bucket_id = 'fotos'
-    and ((storage.foldername(name))[1] = mi_pareja()::text or name not like '%/%')
+    and (
+      (storage.foldername(name))[1] = mi_pareja()::text
+      or exists (select 1 from fotos f where f.ruta = storage.objects.name and f.pareja_id = mi_pareja())
+    )
   );
 
 -- ------------------------------------------------------------
@@ -353,8 +363,9 @@ commit;
 -- ------------------------------------------------------------
 --  PENDIENTE, a propósito, para después del despliegue de la app:
 --
---  a) Mover las fotos viejas a  <pareja_id>/...  y luego quitar el
---     puente `name not like '%/%'` de las dos políticas de storage.
+--  a) Mover las fotos viejas de  <actividad_id>/...  a
+--     <pareja_id>/<actividad_id>/...  y luego quitar las cláusulas
+--     `or exists (...)` de las políticas fotos_ver y fotos_borrar.
 --  b) Eliminar la tabla `config`: fecha_inicio ya vive en `parejas`
 --     y los nombres en `miembros`.
 --         drop table config;
