@@ -36,7 +36,7 @@ begin
   if ana is null or beto is null then
     raise exception 'Faltan los datos de ensayo: corre antes el paso 2';
   end if;
-  if to_regfunc('public.borrar_mi_cuenta') is null then
+  if to_regproc('public.borrar_mi_cuenta') is null then
     raise exception 'Falta la migración 002: corre antes supabase/002-borrado-de-cuenta.sql';
   end if;
 
