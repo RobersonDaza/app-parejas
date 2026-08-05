@@ -206,6 +206,11 @@
         <button id="btn-cerrar-perfil" class="flex-1 rounded-xl bg-arena-200 dark:bg-noche-700 py-3 text-sm font-bold active:scale-95 transition">Cancelar</button>
         <button id="btn-guardar-perfil" class="flex-1 rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Guardar</button>
       </div>
+
+      <div class="mt-6 border-t border-arena-200 dark:border-noche-700 pt-4">
+        <button id="btn-borrar-cuenta" class="w-full text-center text-xs font-bold text-terracota underline opacity-80 active:scale-95 transition">Borrar mi cuenta</button>
+        <p id="perfil-nota-borrado" class="mt-1 text-center text-[11px] opacity-60"></p>
+      </div>
     </div>
   </div>
 
@@ -563,6 +568,10 @@
   // nombres: con muchas parejas habrá nombres repetidos entre espacios.
   // Las filas viejas sin user_id se resuelven por nombre, que dentro
   // de un mismo espacio sí es único.
+  // ¿Quien escribió esto sigue en el espacio, o borró su cuenta?
+  const siguePresente = (userId, nombre) =>
+    miembros.some((m) => (userId && m.user_id === userId) || (m.nombre && m.nombre === nombre));
+
   const esColorPrimario = (userId, nombre) => {
     const m = miembros.find((x) => userId && x.user_id === userId)
            || miembros.find((x) => x.nombre && x.nombre === nombre);
@@ -871,9 +880,41 @@
     // El código solo importa mientras la otra persona no se haya unido
     const codigo = miembros.length < 2 ? await mostrarCodigoInvitacion('#perfil-codigo-valor') : null;
     $('#perfil-codigo').classList.toggle('hidden', !codigo);
+    $('#perfil-nota-borrado').textContent = miembros.length < 2
+      ? 'Eres la única persona aquí: se borraría todo el espacio.'
+      : 'Lo que escribiste se queda para la otra persona.';
     $('#modal-perfil').classList.remove('hidden');
   });
   $('#btn-cerrar-perfil').addEventListener('click', () => $('#modal-perfil').classList.add('hidden'));
+
+  $('#btn-borrar-cuenta').addEventListener('click', async () => {
+    const soloYo = miembros.length < 2;
+    const otra = miembros.find((m) => m.user_id !== miUserId);
+    const aviso = soloYo
+      ? `Eres la única persona en este espacio.
+
+Se borrará TODO: planes, mensajes, fotos, check-ins y calendario. No se puede deshacer.`
+      : `Se borrará tu cuenta.
+
+Lo que escribiste se queda para ${(otra && otra.nombre) || 'la otra persona'}, que podrá eliminarlo si quiere.`;
+    if (!confirm(`${aviso}
+
+¿Seguimos?`)) return;
+    if (!confirm('Última confirmación: esto no tiene vuelta atrás.')) return;
+
+    // Los archivos del bucket no los borra la base de datos: si el espacio
+    // entero se va, hay que quitarlos antes o quedan huérfanos ocupando sitio.
+    if (soloYo && fotos.length) {
+      const { error } = await sb.storage.from('fotos').remove(fotos.map((f) => f.ruta));
+      if (error) { avisar('No se pudieron borrar las fotos: ' + error.message); return; }
+    }
+
+    const { error } = await sb.rpc('borrar_mi_cuenta');
+    if (error) { avisar('No se pudo borrar la cuenta: ' + error.message); return; }
+
+    try { await sb.auth.signOut(); } catch { /* la cuenta ya no existe */ }
+    location.reload();
+  });
   $('#btn-guardar-perfil').addEventListener('click', async () => {
     const nombre = $('#perfil-nombre').value.trim();
     if (!nombre) {
@@ -1236,14 +1277,16 @@
           const esPrimera = esColorPrimario(g.user_id, g.autor);
           // Es mío si coincide el user_id (o, en mensajes antiguos sin dueño, el nombre)
           const esMio = g.user_id ? g.user_id === miUserId : g.autor === usuarioActual;
+          // Lo dejó alguien que ya borró su cuenta: quien se queda puede limpiarlo
+          const esHuerfano = !esMio && !siguePresente(g.user_id, g.autor);
           return `
           <div class="anim-in rounded-2xl border-l-4 ${esPrimera ? 'border-terracota' : 'border-oliva'} bg-white dark:bg-noche-800 p-4 shadow-sm">
             <p class="text-sm leading-relaxed">${esc(g.texto)}</p>
             ${g.reaccion && esMio ? `<p class="mt-1 text-[11px] opacity-60">Respondió con ${g.reaccion}</p>` : ''}
             <div class="mt-2 flex items-center justify-between text-[11px] opacity-60">
-              <span class="font-bold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(g.autor)} ${g.reaccion ? `<span class="ml-1 rounded-full bg-arena-100 dark:bg-noche-700 px-1.5 py-0.5">${g.reaccion}</span>` : ''}</span>
+              <span class="font-bold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(g.autor)}${siguePresente(g.user_id, g.autor) ? '' : '<span class="ml-1 font-normal opacity-50">· ya no está</span>'} ${g.reaccion ? `<span class="ml-1 rounded-full bg-arena-100 dark:bg-noche-700 px-1.5 py-0.5">${g.reaccion}</span>` : ''}</span>
               <span>${FORMATO_FECHA.format(new Date(g.created_at))}</span>
-              ${esMio ? `<span class="flex gap-2"><button data-editar-grat="${g.id}" class="underline">editar</button><button data-borrar-grat="${g.id}" class="underline">eliminar</button></span>` : ''}
+              ${esMio || esHuerfano ? `<span class="flex gap-2">${esMio ? `<button data-editar-grat="${g.id}" class="underline">editar</button>` : ''}<button data-borrar-grat="${g.id}" class="underline">eliminar</button></span>` : ''}
             </div>
             ${!esMio ? `
             <div class="mt-2 flex gap-1 border-t border-arena-100 dark:border-noche-700 pt-2">
@@ -1341,10 +1384,11 @@
       ? checkins.map((c) => {
           const esPrimera = esColorPrimario(c.user_id, c.autor);
           const esMio = c.user_id ? c.user_id === miUserId : c.autor === usuarioActual;
+          const esHuerfano = !esMio && !siguePresente(c.user_id, c.autor);
           return `
           <div class="anim-in rounded-2xl bg-white dark:bg-noche-800 p-4 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-extrabold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(c.autor)} ${EMOJIS_ANIMO[c.animo] || ''}</span>
+              <span class="text-sm font-extrabold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(c.autor)}${siguePresente(c.user_id, c.autor) ? '' : '<span class="ml-1 font-normal opacity-50">· ya no está</span>'} ${EMOJIS_ANIMO[c.animo] || ''}</span>
               <span class="text-[11px] opacity-60">Semana del ${FORMATO_FECHA.format(fechaLocal(c.semana))}</span>
             </div>
             <div class="mt-3 space-y-1.5 text-xs">
@@ -1353,7 +1397,7 @@
               ${c.feliz ? `<p class="mt-2"><span class="font-bold">Me hizo feliz:</span> ${esc(c.feliz)}</p>` : ''}
               ${c.mejorar ? `<p><span class="font-bold">Podemos mejorar:</span> ${esc(c.mejorar)}</p>` : ''}
             </div>
-            ${esMio ? `<button data-borrar-ci="${c.id}" class="mt-2 text-[11px] opacity-50 underline">eliminar</button>` : ''}
+            ${esMio || esHuerfano ? `<button data-borrar-ci="${c.id}" class="mt-2 text-[11px] opacity-50 underline">eliminar</button>` : ''}
           </div>`;
         }).join('')
       : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Aún no hay check-ins. El primero puede ser este fin de semana.</p>';
