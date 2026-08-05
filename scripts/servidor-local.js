@@ -4,9 +4,9 @@
 //      node scripts/servidor-local.js
 //      → http://localhost:8080
 //
-//  Hace falta servirla por http (y no abrir el archivo directo)
-//  para que funcione el inicio de sesión con Google, que necesita
-//  volver a una dirección real después del redirect.
+//  Conviene servirla por http en vez de abrir el archivo directo:
+//  con file:// el navegador aplica restricciones que en producción
+//  no existen, y se acaba depurando problemas que no son reales.
 // ==============================================================
 const http = require('http');
 const fs = require('fs');

@@ -92,11 +92,6 @@
         <p id="login-aviso" class="hidden rounded-xl bg-oliva-soft p-3 text-sm font-bold text-oliva-dark"></p>
         <button id="btn-login" type="submit" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Entrar</button>
 
-        <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest opacity-40">
-          <span class="h-px flex-1 bg-current"></span>o<span class="h-px flex-1 bg-current"></span>
-        </div>
-        <button id="btn-google" type="button" class="w-full rounded-xl border border-arena-300 dark:border-noche-600 py-3 text-sm font-bold active:scale-95 transition">Continuar con Google</button>
-
         <p id="nota-acceso" class="text-center text-[11px] opacity-60">Cada pareja tiene su propio espacio privado.</p>
       </form>
     </div>
@@ -821,19 +816,6 @@
     iniciarApp(data.session);
   });
 
-  $('#btn-google').addEventListener('click', async () => {
-    if (!sb) return;
-    if (faltaAceptar()) return;
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: location.origin + location.pathname }
-    });
-    if (error) {
-      $('#login-error').textContent = 'No se pudo abrir Google: ' + error.message;
-      $('#login-error').classList.remove('hidden');
-    }
-  });
-
   $('#btn-salir').addEventListener('click', async () => {
     if (sb) await sb.auth.signOut();
     location.reload();
@@ -842,14 +824,9 @@
   async function iniciarApp(sesion) {
     miUserId = sesion.user.id;
     $('#vista-login').classList.add('hidden');
-    // Con Google no se pueden mandar datos en el alta, así que la constancia
-    // de la aceptación (que se marcó antes de salir hacia Google) se guarda
-    // al volver, la primera vez.
-    if (!(sesion.user.user_metadata || {}).acepto_legal_en) {
-      try {
-        await sb.auth.updateUser({ data: { acepto_legal_en: new Date().toISOString(), version_legal: VERSION_LEGAL } });
-      } catch { /* si falla, no vale la pena bloquear la entrada */ }
-    }
+    // La constancia de la aceptación se guarda al crear la cuenta, que es
+    // cuando se da. Las cuentas anteriores a esa pantalla no la tienen, y se
+    // deja así a propósito: firmar por ellas no probaría nada.
     await cargarIdentidad();
     // Recién registrado: falta escoger espacio, o falta el nombre
     if (!miMiembro)        { mostrarPaso('paso-espacio'); return; }

@@ -28,9 +28,9 @@ personales recogidos a través de App Parejas (`[dirección del sitio]`).
 
 ### Qué guardamos
 
-**Para que puedas entrar:** tu correo electrónico y una contraseña cifrada. Si
-entras con Google, recibimos de Google tu correo y tu identificador de cuenta;
-nunca tu contraseña.
+**Para que puedas entrar:** tu correo electrónico y tu contraseña, que se
+guarda cifrada. No hay inicio de sesión con redes sociales, así que ningún
+tercero se entera de que usas esta aplicación.
 
 **El nombre que escoges** para mostrarte dentro de la app. No tiene que ser tu
 nombre real.

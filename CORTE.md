@@ -10,7 +10,7 @@ momentos que no dependen entre sí:
 | | Qué pasa | Qué hace falta |
 |---|---|---|
 | **Corte A** | La app pasa a la arquitectura nueva. Siguen siendo ustedes dos y nadie lo nota, salvo que ahora cada quien edita su nombre | Nada más que lo que ya está listo |
-| **Corte B** | Se abre el registro y entran otras parejas | Revisión legal, proveedor de correo y Google |
+| **Corte B** | Se abre el registro y entran otras parejas | Revisión legal y proveedor de correo |
 
 **Haz el A ahora y el B cuando quieras.** Vivir unas semanas sobre la
 arquitectura nueva antes de que entren desconocidos es la mejor prueba que
@@ -174,9 +174,8 @@ hoy tu red de seguridad.
       para que las aceptaciones queden asociadas al texto correcto.
 - [ ] Proveedor de correo configurado en **Authentication → Emails → SMTP**.
       Sin esto los correos de confirmación fallan en silencio y la gente se
-      queda fuera sin entender por qué.
-- [ ] Google en **Authentication → Sign In / Providers**, con la URL del sitio
-      en las direcciones de redirección autorizadas.
+      queda fuera sin entender por qué. Con correo y contraseña como única
+      vía de entrada, este punto es crítico: no hay alternativa si falla.
 
 ## Prueba con una pareja de verdad
 
