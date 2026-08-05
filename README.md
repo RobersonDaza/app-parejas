@@ -42,6 +42,27 @@ en tiempo real.
 Si `config.js` no existe, la app arranca y muestra un aviso de "falta configurar
 Supabase" en lugar de fallar.
 
+## Despliegue
+
+El sitio se publica solo en Netlify con cada `push` a `main`. La configuración
+está en [netlify.toml](netlify.toml): Netlify ejecuta `node scripts/build-site.js`,
+que copia `index.html` y `sw.js` a `dist/` y genera ahí un `config.js` a partir
+de dos variables de entorno del panel de Netlify:
+
+| Variable | De dónde sale |
+|---|---|
+| `SUPABASE_URL` | Supabase → Project Settings → API |
+| `SUPABASE_ANON_KEY` | la clave `anon public` de esa misma pantalla |
+
+Si alguna falta, el build falla y **no** se publica nada: es preferible a dejar
+en línea un sitio que no puede conectarse.
+
+Para reproducir el build en local:
+
+```bash
+SUPABASE_URL=... SUPABASE_ANON_KEY=... node scripts/build-site.js
+```
+
 ## Configuración y seguridad
 
 `config.js` está en `.gitignore` y **nunca se sube al repositorio**. Solo se

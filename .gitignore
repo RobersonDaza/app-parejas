@@ -4,6 +4,9 @@ config.js
 # Copias históricas locales: el historial de git ya cumple esa función
 respaldo-*.html
 
+# Carpeta que genera el build para Netlify
+dist/
+
 # Sistema operativo / editores
 Thumbs.db
 desktop.ini

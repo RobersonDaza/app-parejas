@@ -1,0 +1,13 @@
+# Configuración de despliegue en Netlify.
+# El sitio se publica solo con cada push a la rama main.
+#
+# Requiere dos variables de entorno, que se configuran en
+# Netlify → Site configuration → Environment variables:
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+# Con ellas, scripts/build-site.js genera dist/config.js en cada
+# despliegue. Por eso las claves nunca están en el repositorio.
+
+[build]
+  command = "node scripts/build-site.js"
+  publish = "dist"
