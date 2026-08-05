@@ -23,6 +23,17 @@ const TIPOS = {
 
 http.createServer((req, res) => {
   const pedido = decodeURIComponent(req.url.split('?')[0]);
+
+  // legal.html no existe como archivo: lo genera el build desde el markdown.
+  // Aquí se hace lo mismo al vuelo, para poder probar el enlace en local.
+  if (pedido === '/legal.html') {
+    const { pagina } = require('./lib/markdown.js');
+    const md = fs.readFileSync(path.join(RAIZ, 'legal', 'privacidad-y-terminos.md'), 'utf8');
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(pagina(md, 'Privacidad y términos · App Parejas'));
+    return;
+  }
+
   const archivo = path.join(RAIZ, pedido === '/' ? 'index.html' : pedido);
 
   // Nadie debe poder salirse de la carpeta del proyecto

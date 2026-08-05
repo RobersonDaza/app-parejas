@@ -82,6 +82,12 @@
                class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
         <input id="login-pass" type="password" required autocomplete="current-password" placeholder="Tu contraseña" minlength="6"
                class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <!-- Solo al crear cuenta: la aceptación va antes de que exista la cuenta -->
+        <label id="fila-terminos" class="hidden items-start gap-2 pt-1 text-[11px] leading-snug opacity-80">
+          <input id="acepto-terminos" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-terracota" />
+          <span>He leído y acepto la <a href="legal.html" target="_blank" class="font-bold underline">política de privacidad y los términos de uso</a>.</span>
+        </label>
+
         <p id="login-error" class="hidden text-sm font-bold text-terracota"></p>
         <p id="login-aviso" class="hidden rounded-xl bg-oliva-soft p-3 text-sm font-bold text-oliva-dark"></p>
         <button id="btn-login" type="submit" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Entrar</button>
@@ -182,6 +188,31 @@
       <h2 class="text-xl font-extrabold text-terracota">Mientras no estabas 💌</h2>
       <ul id="lista-novedades" class="mt-4 space-y-2 text-sm"></ul>
       <button id="btn-cerrar-novedades" class="mt-5 w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Ir a verlo</button>
+    </div>
+  </div>
+
+  <!-- Consentimiento aparte para el calendario íntimo.
+       Son datos sensibles: la autorización tiene que ser explícita y
+       no se puede condicionar el resto de la app a que se dé. -->
+  <div id="modal-intimo-consentimiento" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+    <div class="anim-in w-full max-w-sm rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-2xl">
+      <h2 class="text-xl font-extrabold text-terracota">Antes de abrir esta sección</h2>
+      <p class="mt-3 text-sm leading-relaxed">
+        El calendario íntimo guarda fechas sobre su vida sexual. La ley los
+        considera <span class="font-bold">datos sensibles</span>, así que
+        necesitamos tu autorización explícita para guardarlos.
+      </p>
+      <p class="mt-2 text-sm leading-relaxed opacity-80">
+        No estás obligado: el resto de la app funciona igual sin esta sección.
+        Puedes retirar la autorización y borrar lo guardado cuando quieras.
+      </p>
+      <p class="mt-2 text-[11px] opacity-60">
+        Ver la <a href="legal.html" target="_blank" class="font-bold underline">política de privacidad</a>.
+      </p>
+      <div class="mt-5 flex gap-2">
+        <button id="btn-intimo-no" class="flex-1 rounded-xl bg-arena-200 dark:bg-noche-700 py-3 text-sm font-bold active:scale-95 transition">Ahora no</button>
+        <button id="btn-intimo-si" class="flex-1 rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Autorizo</button>
+      </div>
     </div>
   </div>
 
@@ -728,8 +759,27 @@
     });
     $('#btn-login').textContent = modo === 'registro' ? 'Crear cuenta' : 'Entrar';
     $('#login-pass').setAttribute('autocomplete', modo === 'registro' ? 'new-password' : 'current-password');
+    // La aceptación solo se pide al crear la cuenta, que es cuando aplica
+    $('#fila-terminos').classList.toggle('hidden', modo !== 'registro');
+    $('#fila-terminos').classList.toggle('flex', modo === 'registro');
     $('#login-error').classList.add('hidden');
     $('#login-aviso').classList.add('hidden');
+  }
+
+  // Versión del documento legal que se está aceptando. Cambiarla cuando el
+  // texto cambie: "aceptó alguna vez" no sirve de prueba si el texto ya no
+  // es el mismo.
+  const VERSION_LEGAL = '2026-08-05';
+
+  // Tiene que coincidir con tope_fotos() de la migración 003, que es quien
+  // manda de verdad. Aquí solo sirve para avisar antes de intentar subir.
+  const TOPE_FOTOS = 200 * 1024 * 1024;   // 200 MB por pareja
+
+  function faltaAceptar() {
+    if (modoAuth !== 'registro' || $('#acepto-terminos').checked) return false;
+    $('#login-error').textContent = 'Para crear la cuenta hay que aceptar la política de privacidad.';
+    $('#login-error').classList.remove('hidden');
+    return true;
   }
   $$('.chip-auth').forEach((b) => b.addEventListener('click', () => ponerModoAuth(b.dataset.modoAuth)));
   ponerModoAuth('entrar');
@@ -737,13 +787,19 @@
   $('#form-login').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!sb) return;
+    if (faltaAceptar()) return;
     const btn = $('#btn-login');
     const credenciales = { email: $('#login-email').value.trim(), password: $('#login-pass').value };
     btn.disabled = true;
     btn.textContent = modoAuth === 'registro' ? 'Creando...' : 'Entrando...';
 
+    // La constancia de la aceptación viaja con el alta, así queda guardada
+    // aunque la cuenta tenga que confirmarse por correo antes de entrar.
     const { data, error } = modoAuth === 'registro'
-      ? await sb.auth.signUp(credenciales)
+      ? await sb.auth.signUp({
+          ...credenciales,
+          options: { data: { acepto_legal_en: new Date().toISOString(), version_legal: VERSION_LEGAL } }
+        })
       : await sb.auth.signInWithPassword(credenciales);
 
     btn.disabled = false;
@@ -767,6 +823,7 @@
 
   $('#btn-google').addEventListener('click', async () => {
     if (!sb) return;
+    if (faltaAceptar()) return;
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: location.origin + location.pathname }
@@ -785,6 +842,14 @@
   async function iniciarApp(sesion) {
     miUserId = sesion.user.id;
     $('#vista-login').classList.add('hidden');
+    // Con Google no se pueden mandar datos en el alta, así que la constancia
+    // de la aceptación (que se marcó antes de salir hacia Google) se guarda
+    // al volver, la primera vez.
+    if (!(sesion.user.user_metadata || {}).acepto_legal_en) {
+      try {
+        await sb.auth.updateUser({ data: { acepto_legal_en: new Date().toISOString(), version_legal: VERSION_LEGAL } });
+      } catch { /* si falla, no vale la pena bloquear la entrada */ }
+    }
     await cargarIdentidad();
     // Recién registrado: falta escoger espacio, o falta el nombre
     if (!miMiembro)        { mostrarPaso('paso-espacio'); return; }
@@ -885,6 +950,20 @@
       : 'Lo que escribiste se queda para la otra persona.';
     $('#modal-perfil').classList.remove('hidden');
   });
+  $('#btn-intimo-no').addEventListener('click', () => $('#modal-intimo-consentimiento').classList.add('hidden'));
+  $('#btn-intimo-si').addEventListener('click', async () => {
+    const ahora = new Date().toISOString();
+    await db(sb.from('miembros')
+      .update({ acepto_intimo_en: ahora, acepto_intimo_version: VERSION_LEGAL })
+      .eq('user_id', miUserId));
+    // Se anota en memoria antes de releer: si la lectura volviera con datos
+    // viejos, irA() volvería a pedir la autorización recién dada.
+    if (miMiembro) miMiembro.acepto_intimo_en = ahora;
+    $('#modal-intimo-consentimiento').classList.add('hidden');
+    irA('intimo');
+    cargarIdentidad();
+  });
+
   $('#btn-cerrar-perfil').addEventListener('click', () => $('#modal-perfil').classList.add('hidden'));
 
   $('#btn-borrar-cuenta').addEventListener('click', async () => {
@@ -1051,6 +1130,11 @@ Lo que escribiste se queda para ${(otra && otra.nombre) || 'la otra persona'}, q
   //  NAVEGACIÓN ENTRE VISTAS
   // ==============================================================
   function irA(vista) {
+    // El calendario íntimo guarda datos sensibles: no se abre sin autorización
+    if (vista === 'intimo' && miMiembro && !miMiembro.acepto_intimo_en) {
+      $('#modal-intimo-consentimiento').classList.remove('hidden');
+      return;
+    }
     $$('[data-vista]').forEach((s) => s.classList.add('hidden'));
     const destino = $('#vista-' + vista);
     destino.classList.remove('hidden');
@@ -1443,6 +1527,19 @@ Lo que escribiste se queda para ${(otra && otra.nombre) || 'la otra persona'}, q
     e.target.value = '';
     if (!archivos.length || !planFotoActual) return;
     const plan = actividades.find((a) => a.id === planFotoActual);
+
+    // El tope real lo impone la base de datos; esto es para avisar antes de
+    // que la subida falle a mitad de camino.
+    const { data: usado } = await sb.rpc('uso_fotos');
+    if (typeof usado === 'number') {
+      const porcentaje = Math.round((usado / TOPE_FOTOS) * 100);
+      if (usado >= TOPE_FOTOS) {
+        avisar('Se llenó el espacio de fotos. Borra algunas para poder subir más 📷');
+        return;
+      }
+      if (porcentaje >= 80) avisar(`Van por el ${porcentaje}% del espacio de fotos`);
+    }
+
     avisar(`Subiendo ${archivos.length} foto${archivos.length === 1 ? '' : 's'}...`);
     marcaAccionLocal = Date.now();
     for (const archivo of archivos) {
