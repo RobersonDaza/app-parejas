@@ -1,5 +1,12 @@
 # Guía: conectar la app a Supabase (datos compartidos en la nube)
 
+> ⚠️ **Esta guía describe el montaje de una sola pareja**, que es como está
+> hoy en producción. La fase 2 (varias parejas) cambia parte de esto: los
+> nombres pasan de la tabla `config` a `miembros`, y el Paso 5b desaparece
+> porque cada quien escoge su nombre al entrar. Mientras la migración
+> `supabase/001-multiples-parejas.sql` no esté aplicada, sigue siendo válida
+> tal cual. Se reescribirá en el corte.
+
 Con esto, lo que agregue uno lo verá el otro al instante, desde cualquier celular.
 Tiempo estimado: 15-20 minutos. Todo es gratis en el plan Free de Supabase.
 
