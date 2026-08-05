@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Nuestro Espacio</title>
+  <!-- Tiñe la barra del navegador del celular con el color del tema activo.
+       Se actualiza desde aplicarTema() al cambiar entre claro y oscuro. -->
+  <meta id="meta-tema" name="theme-color" content="#FAF6EF" />
 
   <!-- Tailwind CSS (CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -595,6 +598,7 @@
     document.documentElement.classList.toggle('dark', tema === 'oscuro');
     $('#icono-luna').classList.toggle('hidden', tema === 'oscuro');
     $('#icono-sol').classList.toggle('hidden', tema !== 'oscuro');
+    $('#meta-tema').setAttribute('content', tema === 'oscuro' ? '#26201A' : '#FAF6EF');
     guardarLocal('lr_tema', tema);
   }
   $('#btn-tema').addEventListener('click', () => {
