@@ -430,23 +430,31 @@
   // ==============================================================
   const CONFIG = window.APP_CONFIG || {
     SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',      // solo la raíz, sin /rest/v1/
-    SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY',  // clave larga "anon public"
-    // Correos con los que crearon los usuarios en Supabase → nombre que se muestra
-    USUARIOS: {}
+    SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY'   // clave larga "anon public"
   };
 
-  // ---------- Identidad de la pareja (sale de config.js) ----------
-  // Nombres en el orden en que están en USUARIOS. El primero usa el color
-  // terracota y el segundo el oliva.
-  const NOMBRES = Object.values(CONFIG.USUARIOS || {});
-  const NOMBRE_1 = NOMBRES[0] || '';
-  const TITULO   = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
+  // ==============================================================
+  //  IDENTIDAD DE LA PAREJA
+  //  Los correos y los nombres NO viven en el código: se guardan en
+  //  la fila 'usuarios' de la tabla "config" de Supabase y se leen
+  //  solo después de iniciar sesión, cuando las políticas RLS ya
+  //  autorizan la lectura. Así la página publicada no contiene
+  //  ningún dato personal, ni siquiera en el código fuente.
+  //  Antes del login, la app se llama "Nuestro Espacio".
+  // ==============================================================
+  let USUARIOS = {};        // { correo: nombre a mostrar }
+  let NOMBRES  = [];        // nombres en el orden guardado
+  let NOMBRE_1 = '';        // el primero usa terracota; el segundo, oliva
+  let TITULO   = 'Nuestro Espacio';
 
-  document.title = TITULO;
-  document.querySelectorAll('[data-titulo]').forEach((el) => { el.textContent = TITULO; });
-  if (NOMBRES.length) {
-    document.querySelector('#nota-acceso').textContent =
-      `Solo ${NOMBRES.join(' y ')} tienen acceso a este espacio.`;
+  async function cargarIdentidad() {
+    const filas = await db(sb.from('config').select('valor').eq('clave', 'usuarios'));
+    try { USUARIOS = JSON.parse(filas[0]?.valor || '{}'); } catch { USUARIOS = {}; }
+    NOMBRES  = Object.values(USUARIOS);
+    NOMBRE_1 = NOMBRES[0] || '';
+    TITULO   = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
+    document.title = TITULO;
+    $$('[data-titulo]').forEach((el) => { el.textContent = TITULO; });
   }
 
   // ---------- Utilidades básicas ----------
@@ -609,7 +617,8 @@
   async function iniciarApp(sesion) {
     const correo = sesion.user.email.toLowerCase();
     miUserId = sesion.user.id;
-    usuarioActual = CONFIG.USUARIOS[correo] || correo.split('@')[0];
+    await cargarIdentidad();   // nombres desde Supabase, ya autenticados
+    usuarioActual = USUARIOS[correo] || correo.split('@')[0];
     $$('.quien-escribe').forEach((el) => el.textContent = usuarioActual);
     $('#vista-login').classList.add('hidden');
 

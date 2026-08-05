@@ -107,20 +107,43 @@ alter publication supabase_realtime add table actividades, gratitudes, checkins,
 ```js
 window.APP_CONFIG = {
   SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',
-  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY',
-  USUARIOS: {
-    'correo-de-ella@ejemplo.com': 'Nombre1',   // ← correos reales de los dos usuarios
-    'correo-de-el@ejemplo.com':   'Nombre2'
-  }
+  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY'
 };
 ```
 
-4. Reemplaza los dos textos `PEGA_AQUI...` por tus valores (entre comillas),
-   pon los correos reales y los nombres que quieres que se muestren.
-   Guarda el archivo.
+4. Reemplaza los dos textos `PEGA_AQUI...` por tus valores (entre comillas)
+   y guarda el archivo.
 
-   > `config.js` está en `.gitignore`: tus claves y correos no se suben al
-   > repositorio. `index.html` no se toca.
+   > `config.js` está en `.gitignore`: tus claves no se suben al repositorio.
+   > `index.html` no se toca.
+
+5. Los correos y los nombres **no van en este archivo**: se guardan dentro de
+   la base de datos, en el Paso 5b. Así la página publicada no expone ningún
+   dato personal, ni siquiera en su código fuente.
+
+## Paso 5b — Guardar los nombres dentro de la base de datos
+
+La app necesita saber qué nombre mostrar para cada correo (y cuál va primero,
+que es el que usa el color terracota). Eso vive en la tabla `config`, que solo
+pueden leer los dos usuarios ya autenticados.
+
+En **SQL Editor → New query**, cambia los dos correos y los dos nombres por los
+reales y ejecuta:
+
+```sql
+insert into config (clave, valor) values (
+  'usuarios',
+  '{"correo-de-ella@ejemplo.com":"Nombre1","correo-de-el@ejemplo.com":"Nombre2"}'
+)
+on conflict (clave) do update set valor = excluded.valor;
+```
+
+El orden importa: el primero de la lista es quien aparece con el color
+terracota en el frasco de gratitud y en los check-ins.
+
+Si algún día quieren cambiar un nombre, vuelvan a correr esa misma consulta con
+el valor nuevo. Mientras esa fila no exista, la app funciona igual pero se
+titula "Nuestro Espacio" y muestra la parte del correo antes de la @.
 
 > ¿Es seguro que la clave "anon" quede en el archivo? Sí: esa clave es pública
 > por diseño. La protección real son las políticas del Paso 2 (solo usuarios

@@ -4,13 +4,12 @@
 //  reemplaza los valores con los de tu proyecto de Supabase.
 //  Ver GUIA-SUPABASE.md, paso "Copiar las claves".
 //  config.js está en .gitignore: nunca se sube al repositorio.
+//
+//  Aquí NO van correos ni nombres. Esos se guardan dentro de la
+//  base de datos (tabla "config", fila 'usuarios'), protegidos por
+//  las políticas RLS, y la app los lee después del login.
 // ==============================================================
 window.APP_CONFIG = {
-  SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',      // solo la raíz, sin /rest/v1/
-  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY',  // clave larga "anon public"
-  // Correos con los que crearon los usuarios en Supabase → nombre que se muestra
-  USUARIOS: {
-    'correo-de-ella@ejemplo.com': 'Nombre1',
-    'correo-de-el@ejemplo.com':   'Nombre2'
-  }
+  SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',     // solo la raíz, sin /rest/v1/
+  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY'  // clave larga "anon public"
 };

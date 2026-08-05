@@ -33,8 +33,9 @@ en tiempo real.
    cp config.example.js config.js
    ```
 
-   En `config.js` pon tu `SUPABASE_URL`, tu clave `anon public` y los correos
-   de los dos usuarios que creaste en Supabase.
+   En `config.js` pon tu `SUPABASE_URL` y tu clave `anon public`. Los correos
+   y los nombres no van ahí: se guardan dentro de la base de datos (Paso 5b de
+   la guía).
 4. Abre `index.html` en el navegador (o sírvelo con cualquier servidor estático)
    e inicia sesión con esos correos.
 
@@ -48,8 +49,12 @@ publica la plantilla `config.example.js`.
 
 La clave `anon public` de Supabase está pensada para vivir en el cliente: lo que
 realmente protege los datos son las políticas **RLS** de la base de datos. Aun
-así, este proyecto la mantiene fuera del repositorio junto con los correos de
-los usuarios, que sí son datos personales.
+así, este proyecto la mantiene fuera del repositorio.
+
+Los **correos y los nombres no están en el código**. Se guardan en la tabla
+`config` de la base de datos y la app los pide una vez iniciada la sesión, ya
+autenticada. Por eso ni el repositorio ni el código fuente del sitio publicado
+contienen datos personales: antes del login la app se llama "Nuestro Espacio".
 
 ## Estructura
 
