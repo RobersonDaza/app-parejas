@@ -2,6 +2,25 @@
 
 Cómo pasar la app real de una pareja a muchas, sin perder nada.
 
+> ## Estado: Corte A hecho el 5 de agosto de 2026
+>
+> Las migraciones 001, 002 y 003 están aplicadas en producción, la app nueva
+> desplegada y las 40 fotos movidas a su ruta por pareja. Los seis conteos
+> cuadraron exactamente con los de antes: 5 planes, 26 gratitudes, 8 check-ins,
+> 13 fechas, 40 fotos, 0 reuniones.
+>
+> **Lo que salió mal y hubo que corregir sobre la marcha:** el reparto de
+> colores salió invertido. La migración leía el mapa de nombres como `jsonb`,
+> que reordena las claves por longitud, así que el terracota se lo llevó quien
+> tenía el correo más corto. Y ambos miembros nacían con el mismo `created_at`,
+> con lo que el orden del título quedaba al azar. Se arregló en producción con
+> un `update` y en el archivo con `json` y `clock_timestamp()`.
+>
+> **Pendientes de este corte:** ejecutar `004-quitar-puente-fotos.sql` unos
+> días después, y más adelante `drop table config`.
+>
+> **Falta el Corte B**, que espera a la revisión legal y al proveedor de correo.
+
 ## Lo primero: son dos cortes, no uno
 
 Meterlo todo en una sola tarde es innecesario y arriesgado. Se separa en dos
