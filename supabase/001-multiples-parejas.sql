@@ -193,7 +193,9 @@ alter table calendario_intimo add column if not exists pareja_id uuid references
 do $$
 declare
   la_pareja uuid;
-  mapa      jsonb;
+  -- json y NO jsonb: jsonb reordena las claves por longitud y aquí el orden
+  -- es justo lo que decide quién conserva el color terracota.
+  mapa      json;
   primero   text;
   u         record;
 begin
@@ -203,8 +205,8 @@ begin
   end if;
 
   -- El mapa correo → nombre que hoy vive en config
-  select coalesce((select valor from config where clave = 'usuarios'), '{}')::jsonb into mapa;
-  select k into primero from jsonb_object_keys(mapa) k limit 1;
+  select coalesce((select valor from config where clave = 'usuarios'), '{}')::json into mapa;
+  select k into primero from json_object_keys(mapa) k limit 1;
 
   insert into parejas (fecha_inicio)
     values ((select valor::date from config where clave = 'fecha_inicio'))
@@ -213,12 +215,16 @@ begin
   -- Las cuentas que existen hoy son esa pareja. El primer correo del
   -- mapa conserva el color terracota, para que nada cambie de aspecto.
   for u in select id, email from auth.users order by created_at loop
-    insert into miembros (user_id, pareja_id, nombre, color)
+    insert into miembros (user_id, pareja_id, nombre, color, created_at)
     values (
       u.id,
       la_pareja,
       coalesce(mapa ->> lower(u.email), split_part(u.email, '@', 1)),
-      case when lower(u.email) = primero then 'terracota' else 'oliva' end
+      case when lower(u.email) = primero then 'terracota' else 'oliva' end,
+      -- clock_timestamp() y no now(): now() devuelve la hora de la
+      -- transacción, igual para los dos, y entonces el orden del título
+      -- ("Fulana & Mengano") quedaría al azar.
+      clock_timestamp()
     )
     on conflict (user_id) do nothing;
   end loop;
