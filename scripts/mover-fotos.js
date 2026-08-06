@@ -33,8 +33,14 @@ const APLICAR = process.argv.includes('--aplicar');
 const BUCKET = 'fotos';
 
 if (!URL_BASE || !CLAVE) {
-  console.error('\nFaltan variables de entorno: SUPABASE_URL y SUPABASE_SERVICE_KEY.');
-  console.error('La service_role está en Supabase → Project Settings → API.\n');
+  const faltan = [!URL_BASE && 'SUPABASE_URL', !CLAVE && 'SUPABASE_SERVICE_KEY'].filter(Boolean);
+  console.error('\nFalta' + (faltan.length > 1 ? 'n' : '') + ': ' + faltan.join(' y '));
+  console.error('\nOjo: hay que exportarlas, no basta con asignarlas. Una asignación');
+  console.error('suelta crea una variable del shell que los programas no ven:');
+  console.error('\n  export SUPABASE_URL="https://TU-PROYECTO.supabase.co"');
+  console.error('  export SUPABASE_SERVICE_KEY="..."');
+  console.error('  node scripts/mover-fotos.js');
+  console.error('\nLa service_role está en Supabase → Project Settings → API.\n');
   process.exit(1);
 }
 
