@@ -1,6 +1,10 @@
 -- ============================================================
 --  MIGRACIÓN 001 — De una pareja a muchas
 --
+--  (En el ensayo del proyecto desechable, este archivo es el
+--   PASO 3 DE 4. Va después de paso-2-datos-de-ensayo.sql y
+--   antes de paso-4-verificar-aislamiento.sql.)
+--
 --  QUÉ HACE
 --  Hoy todas las políticas dicen `using (true)`: cualquier usuario
 --  autenticado ve todo. Eso funciona con dos cuentas y el registro
@@ -25,6 +29,15 @@
 -- ============================================================
 
 begin;
+
+-- Aviso claro si se corre sobre una base que no es la esperada
+do $$
+begin
+  if to_regclass('public.actividades') is null then
+    raise exception 'No encuentro las tablas de la app. Si estás ensayando, corre antes supabase/paso-1-esquema-actual.sql';
+  end if;
+end;
+$$;
 
 -- ------------------------------------------------------------
 --  1. Las dos tablas nuevas
@@ -180,7 +193,9 @@ alter table calendario_intimo add column if not exists pareja_id uuid references
 do $$
 declare
   la_pareja uuid;
-  mapa      jsonb;
+  -- json y NO jsonb: jsonb reordena las claves por longitud y aquí el orden
+  -- es justo lo que decide quién conserva el color terracota.
+  mapa      json;
   primero   text;
   u         record;
 begin
@@ -190,8 +205,8 @@ begin
   end if;
 
   -- El mapa correo → nombre que hoy vive en config
-  select coalesce((select valor from config where clave = 'usuarios'), '{}')::jsonb into mapa;
-  select k into primero from jsonb_object_keys(mapa) k limit 1;
+  select coalesce((select valor from config where clave = 'usuarios'), '{}')::json into mapa;
+  select k into primero from json_object_keys(mapa) k limit 1;
 
   insert into parejas (fecha_inicio)
     values ((select valor::date from config where clave = 'fecha_inicio'))
@@ -200,12 +215,16 @@ begin
   -- Las cuentas que existen hoy son esa pareja. El primer correo del
   -- mapa conserva el color terracota, para que nada cambie de aspecto.
   for u in select id, email from auth.users order by created_at loop
-    insert into miembros (user_id, pareja_id, nombre, color)
+    insert into miembros (user_id, pareja_id, nombre, color, created_at)
     values (
       u.id,
       la_pareja,
       coalesce(mapa ->> lower(u.email), split_part(u.email, '@', 1)),
-      case when lower(u.email) = primero then 'terracota' else 'oliva' end
+      case when lower(u.email) = primero then 'terracota' else 'oliva' end,
+      -- clock_timestamp() y no now(): now() devuelve la hora de la
+      -- transacción, igual para los dos, y entonces el orden del título
+      -- ("Fulana & Mengano") quedaría al azar.
+      clock_timestamp()
     )
     on conflict (user_id) do nothing;
   end loop;
@@ -315,11 +334,14 @@ create policy "pareja_intimo" on calendario_intimo for all to authenticated
 --  8. Storage: las fotos también estaban abiertas
 --
 --  Antes bastaba con estar autenticado para leer CUALQUIER foto del
---  bucket. Ahora la ruta debe empezar por el id de tu pareja.
+--  bucket. Ahora las rutas nuevas empiezan por el id de la pareja:
+--      <pareja_id>/<actividad_id>/<archivo>.jpg
 --
---  La condición `name not like '%/%'` es el puente para las fotos que
---  ya existen (guardadas en la raíz). Quítala en cuanto corras el
---  script que las mueve.
+--  Las fotos que ya existen están en  <actividad_id>/<archivo>.jpg,
+--  sin el prefijo. El puente para ellas no puede mirar la ruta: mira
+--  la tabla `fotos`, donde cada archivo ya tiene su dueño. Es preciso
+--  (solo alcanza a las de tu pareja) y se cae solo cuando muevas los
+--  archivos y borres las dos cláusulas `or exists (...)`.
 -- ------------------------------------------------------------
 drop policy if exists "fotos_ver"    on storage.objects;
 drop policy if exists "fotos_subir"  on storage.objects;
@@ -328,9 +350,13 @@ drop policy if exists "fotos_borrar" on storage.objects;
 create policy "fotos_ver" on storage.objects for select to authenticated
   using (
     bucket_id = 'fotos'
-    and ((storage.foldername(name))[1] = mi_pareja()::text or name not like '%/%')
+    and (
+      (storage.foldername(name))[1] = mi_pareja()::text
+      or exists (select 1 from fotos f where f.ruta = storage.objects.name and f.pareja_id = mi_pareja())
+    )
   );
 
+-- Al subir no hay puente: todo lo nuevo va bajo el id de la pareja
 create policy "fotos_subir" on storage.objects for insert to authenticated
   with check (
     bucket_id = 'fotos'
@@ -340,7 +366,10 @@ create policy "fotos_subir" on storage.objects for insert to authenticated
 create policy "fotos_borrar" on storage.objects for delete to authenticated
   using (
     bucket_id = 'fotos'
-    and ((storage.foldername(name))[1] = mi_pareja()::text or name not like '%/%')
+    and (
+      (storage.foldername(name))[1] = mi_pareja()::text
+      or exists (select 1 from fotos f where f.ruta = storage.objects.name and f.pareja_id = mi_pareja())
+    )
   );
 
 -- ------------------------------------------------------------
@@ -353,8 +382,9 @@ commit;
 -- ------------------------------------------------------------
 --  PENDIENTE, a propósito, para después del despliegue de la app:
 --
---  a) Mover las fotos viejas a  <pareja_id>/...  y luego quitar el
---     puente `name not like '%/%'` de las dos políticas de storage.
+--  a) Mover las fotos viejas de  <actividad_id>/...  a
+--     <pareja_id>/<actividad_id>/...  y luego quitar las cláusulas
+--     `or exists (...)` de las políticas fotos_ver y fotos_borrar.
 --  b) Eliminar la tabla `config`: fecha_inicio ya vive en `parejas`
 --     y los nombres en `miembros`.
 --         drop table config;

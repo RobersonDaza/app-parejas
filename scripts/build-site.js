@@ -40,6 +40,20 @@ for (const archivo of ARCHIVOS) {
   fs.copyFileSync(path.join(RAIZ, archivo), path.join(DESTINO, archivo));
 }
 
+// La página legal se genera del markdown, para no tener el texto duplicado.
+// Si falta, el build se detiene: la app enlaza a legal.html desde el registro
+// y un enlace roto ahí no es aceptable.
+const { pagina } = require('./lib/markdown.js');
+const RUTA_LEGAL = path.join(RAIZ, 'legal', 'privacidad-y-terminos.md');
+if (!fs.existsSync(RUTA_LEGAL)) {
+  console.error('\n✖ Falta legal/privacidad-y-terminos.md, al que enlaza el registro.\n');
+  process.exit(1);
+}
+fs.writeFileSync(
+  path.join(DESTINO, 'legal.html'),
+  pagina(fs.readFileSync(RUTA_LEGAL, 'utf8'), 'Privacidad y términos · App Parejas')
+);
+
 const contenido = `// Generado automáticamente en cada despliegue. No editar a mano.
 window.APP_CONFIG = ${JSON.stringify({ SUPABASE_URL, SUPABASE_ANON_KEY }, null, 2)};
 `;

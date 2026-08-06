@@ -5,9 +5,9 @@
 //  Ver GUIA-SUPABASE.md, paso "Copiar las claves".
 //  config.js está en .gitignore: nunca se sube al repositorio.
 //
-//  Aquí NO van correos ni nombres. Esos se guardan dentro de la
-//  base de datos (tabla "config", fila 'usuarios'), protegidos por
-//  las políticas RLS, y la app los lee después del login.
+//  Aquí NO van correos ni nombres. Cada persona escoge el suyo al
+//  entrar y se guarda en la tabla "miembros", protegida por las
+//  políticas RLS: la app lo lee después del login.
 // ==============================================================
 window.APP_CONFIG = {
   SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',     // solo la raíz, sin /rest/v1/

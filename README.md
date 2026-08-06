@@ -34,8 +34,8 @@ en tiempo real.
    ```
 
    En `config.js` pon tu `SUPABASE_URL` y tu clave `anon public`. Los correos
-   y los nombres no van ahí: se guardan dentro de la base de datos (Paso 5b de
-   la guía).
+   y los nombres no van ahí: cada persona escoge su nombre la primera vez que
+   entra y se guarda en la tabla `miembros`.
 4. Abre `index.html` en el navegador (o sírvelo con cualquier servidor estático)
    e inicia sesión con esos correos.
 

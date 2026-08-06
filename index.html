@@ -72,14 +72,70 @@
       </div>
 
       <form id="form-login" class="mt-8 space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-lg">
+        <!-- Entrar o crear cuenta: el mismo formulario cambia de modo -->
+        <div class="flex rounded-xl bg-arena-100 dark:bg-noche-700 p-1 text-xs font-bold">
+          <button type="button" data-modo-auth="entrar"   class="chip-auth flex-1 rounded-lg py-2 transition">Entrar</button>
+          <button type="button" data-modo-auth="registro" class="chip-auth flex-1 rounded-lg py-2 transition">Crear cuenta</button>
+        </div>
+
         <input id="login-email" type="email" required autocomplete="email" placeholder="Tu correo"
                class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
-        <input id="login-pass" type="password" required autocomplete="current-password" placeholder="Tu contraseña"
+        <input id="login-pass" type="password" required autocomplete="current-password" placeholder="Tu contraseña" minlength="6"
                class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <!-- Solo al crear cuenta: la aceptación va antes de que exista la cuenta -->
+        <label id="fila-terminos" class="hidden items-start gap-2 pt-1 text-[11px] leading-snug opacity-80">
+          <input id="acepto-terminos" type="checkbox" class="mt-0.5 h-4 w-4 shrink-0 accent-terracota" />
+          <span>He leído y acepto la <a href="legal.html" target="_blank" class="font-bold underline">política de privacidad y los términos de uso</a>.</span>
+        </label>
+
         <p id="login-error" class="hidden text-sm font-bold text-terracota"></p>
+        <p id="login-aviso" class="hidden rounded-xl bg-oliva-soft p-3 text-sm font-bold text-oliva-dark"></p>
         <button id="btn-login" type="submit" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Entrar</button>
-        <p id="nota-acceso" class="text-center text-[11px] opacity-60">Solo ustedes dos tienen acceso a este espacio.</p>
+
+        <p id="nota-acceso" class="text-center text-[11px] opacity-60">Cada pareja tiene su propio espacio privado.</p>
       </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ALTA DEL ESPACIO
+       Se muestra cuando alguien ya inició sesión pero todavía no
+       pertenece a ninguna pareja, o aún no ha puesto su nombre.
+       ============================================================ -->
+  <div id="vista-espacio" class="hidden fixed inset-0 z-40 flex items-center justify-center bg-crema dark:bg-noche-900 p-6">
+    <div class="anim-in w-full max-w-sm">
+      <h1 class="text-center text-3xl font-extrabold text-terracota">Nuestro Espacio</h1>
+
+      <!-- Paso 1: crear el espacio o unirse al de la pareja -->
+      <div id="paso-espacio" class="mt-8 space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-lg">
+        <p class="text-center text-sm opacity-70">¿Empiezan de cero, o tu pareja ya creó el espacio?</p>
+        <button id="btn-crear-espacio" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Crear nuestro espacio</button>
+        <div class="flex items-center gap-2 text-[10px] uppercase tracking-widest opacity-40">
+          <span class="h-px flex-1 bg-current"></span>o<span class="h-px flex-1 bg-current"></span>
+        </div>
+        <input id="input-codigo" maxlength="6" autocomplete="off" placeholder="CÓDIGO"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-center text-lg font-extrabold uppercase tracking-[0.3em] outline-none focus:ring-2 focus:ring-oliva" />
+        <button id="btn-unirse" class="w-full rounded-xl bg-oliva py-3 font-bold text-white active:scale-95 transition">Unirme con el código</button>
+        <p id="error-espacio" class="hidden text-center text-sm font-bold text-terracota"></p>
+      </div>
+
+      <!-- Paso 2: el código que hay que pasarle a la pareja -->
+      <div id="paso-codigo" class="hidden mt-8 space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-6 text-center shadow-lg">
+        <p class="text-sm opacity-70">Listo. Pásale este código a tu pareja para que entre al mismo espacio:</p>
+        <p id="codigo-invitacion" class="rounded-xl bg-arena-100 dark:bg-noche-700 py-4 text-3xl font-extrabold tracking-[0.25em] text-terracota"></p>
+        <button id="btn-copiar-codigo" class="w-full rounded-xl bg-arena-200 dark:bg-noche-700 py-2.5 text-xs font-bold active:scale-95 transition">Copiar código</button>
+        <p class="text-[11px] opacity-60">Vence en 7 días y sirve una sola vez.</p>
+        <button id="btn-codigo-listo" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Continuar</button>
+      </div>
+
+      <!-- Paso 3: el nombre con el que aparecerá en la app -->
+      <div id="paso-nombre" class="hidden mt-8 space-y-3 rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-lg">
+        <p class="text-center text-sm opacity-70">¿Cómo quieres que aparezca tu nombre?</p>
+        <input id="input-nombre" maxlength="20" autocomplete="given-name" placeholder="Tu nombre"
+               class="w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-center text-sm outline-none focus:ring-2 focus:ring-terracota" />
+        <p id="error-nombre" class="hidden text-center text-sm font-bold text-terracota"></p>
+        <button id="btn-guardar-nombre" class="w-full rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Entrar a nuestro espacio</button>
+      </div>
     </div>
   </div>
 
@@ -130,6 +186,60 @@
     </div>
   </div>
 
+  <!-- Consentimiento aparte para el calendario íntimo.
+       Son datos sensibles: la autorización tiene que ser explícita y
+       no se puede condicionar el resto de la app a que se dé. -->
+  <div id="modal-intimo-consentimiento" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+    <div class="anim-in w-full max-w-sm rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-2xl">
+      <h2 class="text-xl font-extrabold text-terracota">Antes de abrir esta sección</h2>
+      <p class="mt-3 text-sm leading-relaxed">
+        El calendario íntimo guarda fechas sobre su vida sexual. La ley los
+        considera <span class="font-bold">datos sensibles</span>, así que
+        necesitamos tu autorización explícita para guardarlos.
+      </p>
+      <p class="mt-2 text-sm leading-relaxed opacity-80">
+        No estás obligado: el resto de la app funciona igual sin esta sección.
+        Puedes retirar la autorización y borrar lo guardado cuando quieras.
+      </p>
+      <p class="mt-2 text-[11px] opacity-60">
+        Ver la <a href="legal.html" target="_blank" class="font-bold underline">política de privacidad</a>.
+      </p>
+      <div class="mt-5 flex gap-2">
+        <button id="btn-intimo-no" class="flex-1 rounded-xl bg-arena-200 dark:bg-noche-700 py-3 text-sm font-bold active:scale-95 transition">Ahora no</button>
+        <button id="btn-intimo-si" class="flex-1 rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Autorizo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perfil: cambiar el nombre y, si falta la pareja, ver el código -->
+  <div id="modal-perfil" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4">
+    <div class="anim-in w-full max-w-sm rounded-3xl bg-white dark:bg-noche-800 p-6 shadow-2xl">
+      <h2 class="text-xl font-extrabold text-terracota">Tu perfil</h2>
+
+      <label class="mt-4 block text-xs font-bold uppercase tracking-widest opacity-60">Tu nombre</label>
+      <input id="perfil-nombre" maxlength="20" placeholder="Tu nombre"
+             class="mt-1 w-full rounded-xl border border-arena-300 dark:border-noche-600 bg-arena-100 dark:bg-noche-700 p-3 text-sm outline-none focus:ring-2 focus:ring-terracota" />
+      <p class="mt-1 text-[11px] opacity-60">Así te ven en los planes, el frasco y los check-ins.</p>
+
+      <!-- Solo aparece mientras la pareja no se haya unido -->
+      <div id="perfil-codigo" class="hidden mt-5 rounded-2xl bg-arena-100 dark:bg-noche-700 p-4 text-center">
+        <p class="text-xs opacity-70">Tu pareja todavía no se ha unido. Pásale este código:</p>
+        <p id="perfil-codigo-valor" class="mt-2 text-2xl font-extrabold tracking-[0.25em] text-terracota"></p>
+      </div>
+
+      <p id="perfil-error" class="mt-3 hidden text-sm font-bold text-terracota"></p>
+      <div class="mt-5 flex gap-2">
+        <button id="btn-cerrar-perfil" class="flex-1 rounded-xl bg-arena-200 dark:bg-noche-700 py-3 text-sm font-bold active:scale-95 transition">Cancelar</button>
+        <button id="btn-guardar-perfil" class="flex-1 rounded-xl bg-terracota py-3 font-bold text-white active:scale-95 transition">Guardar</button>
+      </div>
+
+      <div class="mt-6 border-t border-arena-200 dark:border-noche-700 pt-4">
+        <button id="btn-borrar-cuenta" class="w-full text-center text-xs font-bold text-terracota underline opacity-80 active:scale-95 transition">Borrar mi cuenta</button>
+        <p id="perfil-nota-borrado" class="mt-1 text-center text-[11px] opacity-60"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- Notificación flotante (cambios en tiempo real, errores breves) -->
   <div id="toast" class="hidden fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-noche-800 px-4 py-2 text-sm font-bold text-white shadow-lg dark:bg-arena-200 dark:text-noche-900"></div>
 
@@ -151,6 +261,10 @@
         <button id="btn-tema" aria-label="Cambiar tema" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
           <svg id="icono-luna" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
           <svg id="icono-sol" class="hidden h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+        <!-- Perfil: nombre y código de invitación -->
+        <button id="btn-perfil" aria-label="Tu perfil" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path stroke-linecap="round" d="M4 21a8 8 0 0 1 16 0"/></svg>
         </button>
         <!-- Cerrar sesión -->
         <button id="btn-salir" aria-label="Cerrar sesión" class="rounded-full bg-arena-200 dark:bg-noche-700 p-2.5 active:scale-90 transition">
@@ -450,29 +564,45 @@
 
   // ==============================================================
   //  IDENTIDAD DE LA PAREJA
-  //  Los correos y los nombres NO viven en el código: se guardan en
-  //  la fila 'usuarios' de la tabla "config" de Supabase y se leen
-  //  solo después de iniciar sesión, cuando las políticas RLS ya
-  //  autorizan la lectura. Así la página publicada no contiene
-  //  ningún dato personal, ni siquiera en el código fuente.
+  //  Cada espacio es una fila de "parejas" y cada persona una fila
+  //  de "miembros". Ningún dato personal vive en el código: todo se
+  //  lee después de iniciar sesión, y las políticas RLS solo dejan
+  //  ver a los miembros del propio espacio. Por eso las consultas no
+  //  necesitan filtrar por pareja_id: la base de datos ya lo hace.
   //  Antes del login, la app se llama "Nuestro Espacio".
   // ==============================================================
-  let USUARIOS = {};        // { correo: nombre a mostrar }
-  let NOMBRES  = [];        // nombres en el orden guardado
-  let NOMBRE_1 = '';        // el primero usa terracota; el segundo, oliva
-  let TITULO   = 'Nuestro Espacio';
+  let miPareja  = null;     // id del espacio al que pertenezco
+  let miMiembro = null;     // mi propia fila de "miembros"
+  let miembros  = [];       // las dos personas del espacio
+  let NOMBRES   = [];
+  let TITULO    = 'Nuestro Espacio';
 
   async function cargarIdentidad() {
-    const filas = await db(sb.from('config').select('valor').eq('clave', 'usuarios'));
-    try { USUARIOS = JSON.parse(filas[0]?.valor || '{}'); } catch { USUARIOS = {}; }
-    NOMBRES  = Object.values(USUARIOS);
-    NOMBRE_1 = NOMBRES[0] || '';
-    TITULO   = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
+    miembros  = await db(sb.from('miembros').select('*').order('created_at'));
+    miMiembro = miembros.find((m) => m.user_id === miUserId) || null;
+    miPareja  = miMiembro ? miMiembro.pareja_id : null;
+    usuarioActual = miMiembro ? miMiembro.nombre : '';
+    NOMBRES = miembros.map((m) => m.nombre).filter(Boolean);
+    TITULO  = NOMBRES.length ? NOMBRES.join(' & ') : 'Nuestro Espacio';
     document.title = TITULO;
     $$('[data-titulo]').forEach((el) => { el.textContent = TITULO; });
     // "Espacio de" solo tiene sentido delante de nombres propios
     $('#rotulo-espacio').classList.toggle('hidden', !NOMBRES.length);
   }
+
+  // De qué color va cada quien. Sale de "miembros", no de comparar
+  // nombres: con muchas parejas habrá nombres repetidos entre espacios.
+  // Las filas viejas sin user_id se resuelven por nombre, que dentro
+  // de un mismo espacio sí es único.
+  // ¿Quien escribió esto sigue en el espacio, o borró su cuenta?
+  const siguePresente = (userId, nombre) =>
+    miembros.some((m) => (userId && m.user_id === userId) || (m.nombre && m.nombre === nombre));
+
+  const esColorPrimario = (userId, nombre) => {
+    const m = miembros.find((x) => userId && x.user_id === userId)
+           || miembros.find((x) => x.nombre && x.nombre === nombre);
+    return m ? m.color === 'terracota' : true;
+  };
 
   // ---------- Utilidades básicas ----------
   const $  = (sel) => document.querySelector(sel);
@@ -609,19 +739,78 @@
   // ==============================================================
   //  AUTENTICACIÓN
   // ==============================================================
+  // El mismo formulario sirve para entrar y para crear cuenta
+  let modoAuth = 'entrar';
+
+  function ponerModoAuth(modo) {
+    modoAuth = modo;
+    $$('.chip-auth').forEach((b) => {
+      const activo = b.dataset.modoAuth === modo;
+      b.classList.toggle('bg-white', activo);
+      b.classList.toggle('dark:bg-noche-800', activo);
+      b.classList.toggle('text-terracota', activo);
+      b.classList.toggle('shadow-sm', activo);
+      b.classList.toggle('opacity-60', !activo);
+    });
+    $('#btn-login').textContent = modo === 'registro' ? 'Crear cuenta' : 'Entrar';
+    $('#login-pass').setAttribute('autocomplete', modo === 'registro' ? 'new-password' : 'current-password');
+    // La aceptación solo se pide al crear la cuenta, que es cuando aplica
+    $('#fila-terminos').classList.toggle('hidden', modo !== 'registro');
+    $('#fila-terminos').classList.toggle('flex', modo === 'registro');
+    $('#login-error').classList.add('hidden');
+    $('#login-aviso').classList.add('hidden');
+  }
+
+  // Versión del documento legal que se está aceptando. Cambiarla cuando el
+  // texto cambie: "aceptó alguna vez" no sirve de prueba si el texto ya no
+  // es el mismo.
+  const VERSION_LEGAL = '2026-08-05';
+
+  // Tiene que coincidir con tope_fotos() de la migración 003, que es quien
+  // manda de verdad. Aquí solo sirve para avisar antes de intentar subir.
+  const TOPE_FOTOS = 200 * 1024 * 1024;   // 200 MB por pareja
+
+  function faltaAceptar() {
+    if (modoAuth !== 'registro' || $('#acepto-terminos').checked) return false;
+    $('#login-error').textContent = 'Para crear la cuenta hay que aceptar la política de privacidad.';
+    $('#login-error').classList.remove('hidden');
+    return true;
+  }
+  $$('.chip-auth').forEach((b) => b.addEventListener('click', () => ponerModoAuth(b.dataset.modoAuth)));
+  ponerModoAuth('entrar');
+
   $('#form-login').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!sb) return;
+    if (faltaAceptar()) return;
     const btn = $('#btn-login');
-    btn.disabled = true; btn.textContent = 'Entrando...';
-    const { data, error } = await sb.auth.signInWithPassword({
-      email: $('#login-email').value.trim(),
-      password: $('#login-pass').value
-    });
-    btn.disabled = false; btn.textContent = 'Entrar';
+    const credenciales = { email: $('#login-email').value.trim(), password: $('#login-pass').value };
+    btn.disabled = true;
+    btn.textContent = modoAuth === 'registro' ? 'Creando...' : 'Entrando...';
+
+    // La constancia de la aceptación viaja con el alta, así queda guardada
+    // aunque la cuenta tenga que confirmarse por correo antes de entrar.
+    const { data, error } = modoAuth === 'registro'
+      ? await sb.auth.signUp({
+          ...credenciales,
+          options: { data: { acepto_legal_en: new Date().toISOString(), version_legal: VERSION_LEGAL } }
+        })
+      : await sb.auth.signInWithPassword(credenciales);
+
+    btn.disabled = false;
+    ponerModoAuth(modoAuth);   // restaura el texto del botón y limpia avisos
+
     if (error) {
-      $('#login-error').textContent = 'Correo o contraseña incorrectos.';
+      $('#login-error').textContent = modoAuth === 'registro'
+        ? 'No se pudo crear la cuenta: ' + error.message
+        : 'Correo o contraseña incorrectos.';
       $('#login-error').classList.remove('hidden');
+      return;
+    }
+    // Si el proyecto exige confirmar el correo, todavía no hay sesión
+    if (!data.session) {
+      $('#login-aviso').textContent = 'Te enviamos un correo para confirmar tu cuenta. Ábrelo y vuelve a entrar aquí.';
+      $('#login-aviso').classList.remove('hidden');
       return;
     }
     iniciarApp(data.session);
@@ -633,18 +822,170 @@
   });
 
   async function iniciarApp(sesion) {
-    const correo = sesion.user.email.toLowerCase();
     miUserId = sesion.user.id;
-    await cargarIdentidad();   // nombres desde Supabase, ya autenticados
-    usuarioActual = USUARIOS[correo] || correo.split('@')[0];
-    $$('.quien-escribe').forEach((el) => el.textContent = usuarioActual);
     $('#vista-login').classList.add('hidden');
+    // La constancia de la aceptación se guarda al crear la cuenta, que es
+    // cuando se da. Las cuentas anteriores a esa pantalla no la tienen, y se
+    // deja así a propósito: firmar por ellas no probaría nada.
+    await cargarIdentidad();
+    // Recién registrado: falta escoger espacio, o falta el nombre
+    if (!miMiembro)        { mostrarPaso('paso-espacio'); return; }
+    if (!miMiembro.nombre) { mostrarPaso('paso-nombre');  return; }
+    await entrarAlEspacio();
+  }
 
+  async function entrarAlEspacio() {
+    $('#vista-espacio').classList.add('hidden');
+    $$('.quien-escribe').forEach((el) => el.textContent = usuarioActual);
     await Promise.all([refrescarConfig(), refrescarActividades(), refrescarGratitudes(), refrescarCheckins(), refrescarReuniones(), refrescarFotos(), refrescarIntimo()]);
     suscribirTiempoReal();
     irA('home');
     mostrarNovedades(); // resumen de lo que el otro agregó desde la última visita
   }
+
+  // ==============================================================
+  //  ALTA DEL ESPACIO
+  //  Quien llega primero crea el espacio y recibe un código; el otro
+  //  lo escribe para entrar al mismo. El código es de un solo uso y
+  //  vence a los 7 días: eso lo controla la base de datos, no la app.
+  // ==============================================================
+  function mostrarPaso(id) {
+    $('#vista-espacio').classList.remove('hidden');
+    ['paso-espacio', 'paso-codigo', 'paso-nombre'].forEach((p) => {
+      $('#' + p).classList.toggle('hidden', p !== id);
+    });
+    if (id === 'paso-nombre') $('#input-nombre').focus();
+  }
+
+  function avisoEspacio(txt) {
+    $('#error-espacio').textContent = txt;
+    $('#error-espacio').classList.remove('hidden');
+  }
+
+  async function mostrarCodigoInvitacion(destino) {
+    const filas = await db(sb.from('parejas').select('codigo_invitacion').eq('id', miPareja));
+    const codigo = filas[0]?.codigo_invitacion || null;
+    if (codigo) $(destino).textContent = codigo;
+    return codigo;
+  }
+
+  $('#btn-crear-espacio').addEventListener('click', async () => {
+    const btn = $('#btn-crear-espacio');
+    $('#error-espacio').classList.add('hidden');
+    btn.disabled = true; btn.textContent = 'Creando...';
+    const { error } = await sb.rpc('crear_pareja');
+    btn.disabled = false; btn.textContent = 'Crear nuestro espacio';
+    if (error) { avisoEspacio(error.message); return; }
+    await cargarIdentidad();
+    await mostrarCodigoInvitacion('#codigo-invitacion');
+    mostrarPaso('paso-codigo');
+  });
+
+  $('#btn-unirse').addEventListener('click', async () => {
+    const codigo = $('#input-codigo').value.trim().toUpperCase();
+    $('#error-espacio').classList.add('hidden');
+    if (codigo.length !== 6) { avisoEspacio('El código tiene 6 caracteres.'); return; }
+    const btn = $('#btn-unirse');
+    btn.disabled = true; btn.textContent = 'Uniéndote...';
+    const { error } = await sb.rpc('unirse_con_codigo', { codigo_in: codigo });
+    btn.disabled = false; btn.textContent = 'Unirme con el código';
+    if (error) { avisoEspacio(error.message); return; }
+    await cargarIdentidad();
+    mostrarPaso('paso-nombre');
+  });
+
+  $('#btn-copiar-codigo').addEventListener('click', async () => {
+    const codigo = $('#codigo-invitacion').textContent;
+    try { await navigator.clipboard.writeText(codigo); avisar('Código copiado 📋'); }
+    catch { avisar('Cópialo a mano: ' + codigo); }
+  });
+
+  $('#btn-codigo-listo').addEventListener('click', () => mostrarPaso('paso-nombre'));
+
+  $('#btn-guardar-nombre').addEventListener('click', async () => {
+    const nombre = $('#input-nombre').value.trim();
+    if (!nombre) {
+      $('#error-nombre').textContent = 'Escribe un nombre para continuar.';
+      $('#error-nombre').classList.remove('hidden');
+      return;
+    }
+    $('#error-nombre').classList.add('hidden');
+    await db(sb.from('miembros').update({ nombre }).eq('user_id', miUserId));
+    await cargarIdentidad();
+    await entrarAlEspacio();
+  });
+
+  // ---------- Perfil: cambiar el nombre más adelante ----------
+  $('#btn-perfil').addEventListener('click', async () => {
+    $('#perfil-nombre').value = miMiembro ? miMiembro.nombre : '';
+    $('#perfil-error').classList.add('hidden');
+    // El código solo importa mientras la otra persona no se haya unido
+    const codigo = miembros.length < 2 ? await mostrarCodigoInvitacion('#perfil-codigo-valor') : null;
+    $('#perfil-codigo').classList.toggle('hidden', !codigo);
+    $('#perfil-nota-borrado').textContent = miembros.length < 2
+      ? 'Eres la única persona aquí: se borraría todo el espacio.'
+      : 'Lo que escribiste se queda para la otra persona.';
+    $('#modal-perfil').classList.remove('hidden');
+  });
+  $('#btn-intimo-no').addEventListener('click', () => $('#modal-intimo-consentimiento').classList.add('hidden'));
+  $('#btn-intimo-si').addEventListener('click', async () => {
+    const ahora = new Date().toISOString();
+    await db(sb.from('miembros')
+      .update({ acepto_intimo_en: ahora, acepto_intimo_version: VERSION_LEGAL })
+      .eq('user_id', miUserId));
+    // Se anota en memoria antes de releer: si la lectura volviera con datos
+    // viejos, irA() volvería a pedir la autorización recién dada.
+    if (miMiembro) miMiembro.acepto_intimo_en = ahora;
+    $('#modal-intimo-consentimiento').classList.add('hidden');
+    irA('intimo');
+    cargarIdentidad();
+  });
+
+  $('#btn-cerrar-perfil').addEventListener('click', () => $('#modal-perfil').classList.add('hidden'));
+
+  $('#btn-borrar-cuenta').addEventListener('click', async () => {
+    const soloYo = miembros.length < 2;
+    const otra = miembros.find((m) => m.user_id !== miUserId);
+    const aviso = soloYo
+      ? `Eres la única persona en este espacio.
+
+Se borrará TODO: planes, mensajes, fotos, check-ins y calendario. No se puede deshacer.`
+      : `Se borrará tu cuenta.
+
+Lo que escribiste se queda para ${(otra && otra.nombre) || 'la otra persona'}, que podrá eliminarlo si quiere.`;
+    if (!confirm(`${aviso}
+
+¿Seguimos?`)) return;
+    if (!confirm('Última confirmación: esto no tiene vuelta atrás.')) return;
+
+    // Los archivos del bucket no los borra la base de datos: si el espacio
+    // entero se va, hay que quitarlos antes o quedan huérfanos ocupando sitio.
+    if (soloYo && fotos.length) {
+      const { error } = await sb.storage.from('fotos').remove(fotos.map((f) => f.ruta));
+      if (error) { avisar('No se pudieron borrar las fotos: ' + error.message); return; }
+    }
+
+    const { error } = await sb.rpc('borrar_mi_cuenta');
+    if (error) { avisar('No se pudo borrar la cuenta: ' + error.message); return; }
+
+    try { await sb.auth.signOut(); } catch { /* la cuenta ya no existe */ }
+    location.reload();
+  });
+  $('#btn-guardar-perfil').addEventListener('click', async () => {
+    const nombre = $('#perfil-nombre').value.trim();
+    if (!nombre) {
+      $('#perfil-error').textContent = 'El nombre no puede quedar vacío.';
+      $('#perfil-error').classList.remove('hidden');
+      return;
+    }
+    marcaAccionLocal = Date.now();
+    await db(sb.from('miembros').update({ nombre }).eq('user_id', miUserId));
+    await cargarIdentidad();
+    $$('.quien-escribe').forEach((el) => el.textContent = usuarioActual);
+    pintarActividades(); pintarGratitudes(); pintarCheckins();
+    $('#modal-perfil').classList.add('hidden');
+    avisar('Nombre actualizado ✨');
+  });
 
   // ==============================================================
   //  TIEMPO REAL: si el otro agrega/edita algo, la app se actualiza
@@ -680,8 +1021,8 @@
   //  LECTURAS (refrescan el estado en memoria y repintan)
   // ==============================================================
   async function refrescarConfig() {
-    const filas = await db(sb.from('config').select('*').eq('clave', 'fecha_inicio'));
-    fechaInicio = filas[0]?.valor || null;
+    const filas = await db(sb.from('parejas').select('fecha_inicio').eq('id', miPareja));
+    fechaInicio = filas[0]?.fecha_inicio || null;
     if (!fechaInicio) abrirModalFecha(); else pintarContador();
   }
   async function refrescarActividades() {
@@ -755,7 +1096,7 @@
       return;
     }
     marcaAccionLocal = Date.now();
-    await db(sb.from('config').upsert({ clave: 'fecha_inicio', valor }));
+    await db(sb.from('parejas').update({ fecha_inicio: valor }).eq('id', miPareja));
     fechaInicio = valor;
     $('#modal-fecha').classList.add('hidden');
     pintarContador();
@@ -766,6 +1107,11 @@
   //  NAVEGACIÓN ENTRE VISTAS
   // ==============================================================
   function irA(vista) {
+    // El calendario íntimo guarda datos sensibles: no se abre sin autorización
+    if (vista === 'intimo' && miMiembro && !miMiembro.acepto_intimo_en) {
+      $('#modal-intimo-consentimiento').classList.remove('hidden');
+      return;
+    }
     $$('[data-vista]').forEach((s) => s.classList.add('hidden'));
     const destino = $('#vista-' + vista);
     destino.classList.remove('hidden');
@@ -812,7 +1158,7 @@
       editandoPlanId = null;
       avisar('Plan actualizado ✏️');
     } else {
-      await db(sb.from('actividades').insert({ ...datos, creado_por: usuarioActual }));
+      await db(sb.from('actividades').insert({ ...datos, creado_por: usuarioActual, pareja_id: miPareja }));
     }
     e.target.reset();
     $('#btn-guardar-plan').textContent = 'Guardar plan';
@@ -974,7 +1320,8 @@
       await db(sb.from('gratitudes').insert({
         autor: usuarioActual,
         texto,
-        user_id: miUserId   // dueño del mensaje: solo él puede editarlo/eliminarlo
+        user_id: miUserId,   // dueño del mensaje: solo él puede editarlo/eliminarlo
+        pareja_id: miPareja
       }));
     }
     e.target.reset();
@@ -988,17 +1335,19 @@
     $('#num-gratitud').textContent = gratitudes.length;
     $('#lista-gratitud').innerHTML = gratitudes.length
       ? gratitudes.map((g) => {
-          const esPrimera = g.autor === NOMBRE_1;   // primera persona de USUARIOS → color terracota
+          const esPrimera = esColorPrimario(g.user_id, g.autor);
           // Es mío si coincide el user_id (o, en mensajes antiguos sin dueño, el nombre)
           const esMio = g.user_id ? g.user_id === miUserId : g.autor === usuarioActual;
+          // Lo dejó alguien que ya borró su cuenta: quien se queda puede limpiarlo
+          const esHuerfano = !esMio && !siguePresente(g.user_id, g.autor);
           return `
           <div class="anim-in rounded-2xl border-l-4 ${esPrimera ? 'border-terracota' : 'border-oliva'} bg-white dark:bg-noche-800 p-4 shadow-sm">
             <p class="text-sm leading-relaxed">${esc(g.texto)}</p>
             ${g.reaccion && esMio ? `<p class="mt-1 text-[11px] opacity-60">Respondió con ${g.reaccion}</p>` : ''}
             <div class="mt-2 flex items-center justify-between text-[11px] opacity-60">
-              <span class="font-bold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(g.autor)} ${g.reaccion ? `<span class="ml-1 rounded-full bg-arena-100 dark:bg-noche-700 px-1.5 py-0.5">${g.reaccion}</span>` : ''}</span>
+              <span class="font-bold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(g.autor)}${siguePresente(g.user_id, g.autor) ? '' : '<span class="ml-1 font-normal opacity-50">· ya no está</span>'} ${g.reaccion ? `<span class="ml-1 rounded-full bg-arena-100 dark:bg-noche-700 px-1.5 py-0.5">${g.reaccion}</span>` : ''}</span>
               <span>${FORMATO_FECHA.format(new Date(g.created_at))}</span>
-              ${esMio ? `<span class="flex gap-2"><button data-editar-grat="${g.id}" class="underline">editar</button><button data-borrar-grat="${g.id}" class="underline">eliminar</button></span>` : ''}
+              ${esMio || esHuerfano ? `<span class="flex gap-2">${esMio ? `<button data-editar-grat="${g.id}" class="underline">editar</button>` : ''}<button data-borrar-grat="${g.id}" class="underline">eliminar</button></span>` : ''}
             </div>
             ${!esMio ? `
             <div class="mt-2 flex gap-1 border-t border-arena-100 dark:border-noche-700 pt-2">
@@ -1072,6 +1421,7 @@
     await db(sb.from('checkins').insert({
       autor: usuarioActual,
       user_id: miUserId,   // dueño del check-in: solo él puede eliminarlo
+      pareja_id: miPareja,
       semana: semanaISO,
       comunicacion: Number($('#ci-comunicacion').value),
       tiempo: Number($('#ci-tiempo').value),
@@ -1093,12 +1443,13 @@
   function pintarCheckins() {
     $('#lista-checkins').innerHTML = checkins.length
       ? checkins.map((c) => {
-          const esPrimera = c.autor === NOMBRE_1;   // primera persona de USUARIOS → color terracota
+          const esPrimera = esColorPrimario(c.user_id, c.autor);
           const esMio = c.user_id ? c.user_id === miUserId : c.autor === usuarioActual;
+          const esHuerfano = !esMio && !siguePresente(c.user_id, c.autor);
           return `
           <div class="anim-in rounded-2xl bg-white dark:bg-noche-800 p-4 shadow-sm">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-extrabold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(c.autor)} ${EMOJIS_ANIMO[c.animo] || ''}</span>
+              <span class="text-sm font-extrabold ${esPrimera ? 'text-terracota' : 'text-oliva dark:text-oliva-soft'}">${esc(c.autor)}${siguePresente(c.user_id, c.autor) ? '' : '<span class="ml-1 font-normal opacity-50">· ya no está</span>'} ${EMOJIS_ANIMO[c.animo] || ''}</span>
               <span class="text-[11px] opacity-60">Semana del ${FORMATO_FECHA.format(fechaLocal(c.semana))}</span>
             </div>
             <div class="mt-3 space-y-1.5 text-xs">
@@ -1107,7 +1458,7 @@
               ${c.feliz ? `<p class="mt-2"><span class="font-bold">Me hizo feliz:</span> ${esc(c.feliz)}</p>` : ''}
               ${c.mejorar ? `<p><span class="font-bold">Podemos mejorar:</span> ${esc(c.mejorar)}</p>` : ''}
             </div>
-            ${esMio ? `<button data-borrar-ci="${c.id}" class="mt-2 text-[11px] opacity-50 underline">eliminar</button>` : ''}
+            ${esMio || esHuerfano ? `<button data-borrar-ci="${c.id}" class="mt-2 text-[11px] opacity-50 underline">eliminar</button>` : ''}
           </div>`;
         }).join('')
       : '<p class="rounded-2xl bg-arena-100 dark:bg-noche-800 p-5 text-center text-sm opacity-60">Aún no hay check-ins. El primero puede ser este fin de semana.</p>';
@@ -1153,20 +1504,34 @@
     e.target.value = '';
     if (!archivos.length || !planFotoActual) return;
     const plan = actividades.find((a) => a.id === planFotoActual);
+
+    // El tope real lo impone la base de datos; esto es para avisar antes de
+    // que la subida falle a mitad de camino.
+    const { data: usado } = await sb.rpc('uso_fotos');
+    if (typeof usado === 'number') {
+      const porcentaje = Math.round((usado / TOPE_FOTOS) * 100);
+      if (usado >= TOPE_FOTOS) {
+        avisar('Se llenó el espacio de fotos. Borra algunas para poder subir más 📷');
+        return;
+      }
+      if (porcentaje >= 80) avisar(`Van por el ${porcentaje}% del espacio de fotos`);
+    }
+
     avisar(`Subiendo ${archivos.length} foto${archivos.length === 1 ? '' : 's'}...`);
     marcaAccionLocal = Date.now();
     for (const archivo of archivos) {
       let blob;
       try { blob = await comprimirImagen(archivo); }
       catch { blob = archivo; } // si el formato no se puede comprimir, se sube original
-      const ruta = `${planFotoActual}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
+      const ruta = `${miPareja}/${planFotoActual}/${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`;
       const { error } = await sb.storage.from('fotos').upload(ruta, blob, { contentType: 'image/jpeg' });
       if (error) { avisar('Error al subir: ' + error.message); return; }
       await db(sb.from('fotos').insert({
         actividad_id: planFotoActual,
         titulo_plan: plan ? plan.titulo : '',
         ruta,
-        subido_por: usuarioActual
+        subido_por: usuarioActual,
+        pareja_id: miPareja
       }));
     }
     avisar('Fotos guardadas 📷');
@@ -1322,7 +1687,8 @@
       titulo: $('#reu-titulo').value.trim(),
       notas: $('#reu-notas').value.trim(),
       items: itemsBorrador.map((t) => ({ t, ok: false })),
-      creado_por: usuarioActual
+      creado_por: usuarioActual,
+      pareja_id: miPareja
     }));
     e.target.reset();
     itemsBorrador = [];
@@ -1461,7 +1827,7 @@
       await db(sb.from('calendario_intimo').delete().eq('id', existente.id));
     } else {
       // upsert: evita duplicados si ambos tocan el mismo día a la vez
-      await db(sb.from('calendario_intimo').upsert({ fecha: iso, creado_por: usuarioActual }, { onConflict: 'fecha' }));
+      await db(sb.from('calendario_intimo').upsert({ fecha: iso, creado_por: usuarioActual, pareja_id: miPareja }, { onConflict: 'pareja_id,fecha' }));
     }
     await refrescarIntimo();
   });
