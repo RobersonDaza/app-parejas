@@ -1013,7 +1013,9 @@ Lo que escribiste se queda para ${(otra && otra.nombre) || 'la otra persona'}, q
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendario_intimo' }, () => {
         refrescarIntimo().then(() => { if (esAjeno()) anunciar('El calendario se actualizó 💫'); });
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'config' }, () => refrescarConfig())
+      // La fecha de inicio vive en "parejas" desde la fase 2. Antes esto
+      // escuchaba la tabla "config", que ya nadie lee.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'parejas' }, () => refrescarConfig())
       .subscribe();
   }
 
