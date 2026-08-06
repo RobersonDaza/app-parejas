@@ -23,11 +23,16 @@ const celdas = (linea) => linea.trim().replace(/^\||\|$/g, '').split('|').map((c
 const esSeparadorTabla = (l) => /^\|[\s:|-]+\|$/.test(l.trim());
 
 function convertir(md) {
-  const lineas = md.split('\n');
+  // Se normalizan los finales de línea antes de nada. En Windows git puede
+  // dejar los archivos con CRLF, y en una expresión regular el punto no casa
+  // con \r: los títulos dejarían de reconocerse y el bucle de abajo no
+  // avanzaría nunca.
+  const lineas = md.replace(/\r\n?/g, '\n').split('\n');
   const salida = [];
   let i = 0;
 
   while (i < lineas.length) {
+    const anterior = i;
     const l = lineas[i];
 
     if (!l.trim()) { i++; continue; }
@@ -90,6 +95,14 @@ function convertir(md) {
       i++;
     }
     if (parrafo.length) salida.push(`<p>${enLinea(parrafo.join(' '))}</p>`);
+
+    // Red de seguridad: si una línea no la consume ninguna rama, el bucle se
+    // quedaría girando en el sitio. Mejor un error claro que un build colgado.
+    if (i === anterior) {
+      throw new Error(
+        `El conversor no supo qué hacer con la línea ${i + 1}: ${JSON.stringify(lineas[i].slice(0, 60))}`
+      );
+    }
   }
 
   return salida.join('\n');
