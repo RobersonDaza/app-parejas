@@ -75,12 +75,15 @@ async function pedir(ruta, opciones = {}) {
   const fallos = [];
   for (const f of pendientes) {
     const destino = `${f.pareja_id}/${f.ruta}`;
+    let archivoMovido = false;
     try {
       // 1. Mover el archivo
       await pedir('/storage/v1/object/move', {
         method: 'POST',
         body: JSON.stringify({ bucketId: BUCKET, sourceKey: f.ruta, destinationKey: destino })
       });
+      archivoMovido = true;
+
       // 2. Y solo si eso salió bien, apuntar la fila a la ruta nueva
       await pedir(`/rest/v1/fotos?id=eq.${f.id}`, {
         method: 'PATCH',
@@ -89,6 +92,21 @@ async function pedir(ruta, opciones = {}) {
       movidas++;
       console.log(`  ✓ ${f.ruta}`);
     } catch (e) {
+      // Si el archivo ya se movió pero la fila no se actualizó, la foto
+      // quedaría rota: la base apuntando a un sitio vacío. Se devuelve el
+      // archivo a su ruta original para dejarlo como estaba.
+      if (archivoMovido) {
+        try {
+          await pedir('/storage/v1/object/move', {
+            method: 'POST',
+            body: JSON.stringify({ bucketId: BUCKET, sourceKey: destino, destinationKey: f.ruta })
+          });
+          console.log(`  ↩ ${f.ruta} → se devolvió a su sitio`);
+        } catch (e2) {
+          console.log(`  ‼ ${f.ruta} → QUEDÓ DESCUADRADA: el archivo está en ${destino} y la fila apunta a ${f.ruta}`);
+          console.log(`     Arréglalo a mano antes de seguir: ${e2.message}`);
+        }
+      }
       fallos.push({ ruta: f.ruta, motivo: e.message });
       console.log(`  ✗ ${f.ruta} → ${e.message}`);
     }
