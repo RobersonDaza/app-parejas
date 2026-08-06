@@ -24,7 +24,13 @@ Cómo pasar la app real de una pareja a muchas, sin perder nada.
 > keys*. Desde entonces el sitio usa la clave publicable (`sb_publishable_...`)
 > en vez de la `anon`.
 >
-> **Pendiente de este corte:** `drop table config`, cuando pase un tiempo.
+> **Cerrado el mismo día:** se eliminó la tabla `config`. Al ir a borrarla
+> apareció un error que llevaba desde la fase 2 sin detectarse: la suscripción
+> de tiempo real seguía escuchando esa tabla, aunque la fecha de inicio se había
+> mudado a `parejas`. Borrarla sin corregirlo habría dejado a la app suscrita a
+> una tabla inexistente, y ese canal es el que sincroniza *todo* lo demás.
+>
+> **No queda nada pendiente del Corte A.**
 >
 > **Falta el Corte B**, que espera a la revisión legal y al proveedor de correo.
 

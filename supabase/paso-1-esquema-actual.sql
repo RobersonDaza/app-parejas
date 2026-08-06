@@ -5,8 +5,13 @@
 --    3. supabase/001-multiples-parejas.sql        ← ojo: carpeta de arriba
 --    4. supabase/ensayo/paso-4-verificar-aislamiento.sql
 -- ------------------------------------------------------------
---  EL ESQUEMA TAL COMO ESTÁ HOY EN PRODUCCIÓN
+--  EL ESQUEMA DE ANTES DE LA FASE 2
 --  (se puede repetir sin dar error: no cambia nada si ya está)
+--
+--  Ojo: esto ya NO es el estado de producción. Es el punto de
+--  partida del que salió la migración 001, y sirve para reproducirlo
+--  en un proyecto vacío y poder ensayar. La tabla `config` que crea
+--  aquí se eliminó de producción el 5 de agosto de 2026.
 --
 --  Es la suma de todos los pasos de GUIA-SUPABASE.md, en orden.
 --  No hace falta correrlo en el proyecto real: ya está aplicado.
