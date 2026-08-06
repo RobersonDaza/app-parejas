@@ -24,14 +24,41 @@
 begin;
 
 do $$
-declare pendientes int;
+declare
+  pendientes int;
+  descolocados int;
+  huerfanos int;
 begin
+  -- 1. Lo que dice la tabla: ninguna fila puede apuntar a la ruta vieja
   select count(*) into pendientes
     from fotos
    where ruta not like pareja_id::text || '/%';
 
   if pendientes > 0 then
     raise exception 'Hay % foto(s) sin mover: corre antes scripts/mover-fotos.js --aplicar', pendientes;
+  end if;
+
+  -- 2. Lo que hay de verdad en el bucket. Comprobar solo la tabla sería mirar
+  --    el índice y no el estante: si un archivo quedó en otro sitio del que
+  --    dice su fila, dejaría de verse en cuanto quitemos el puente.
+  select count(*) into descolocados
+    from storage.objects o
+   where o.bucket_id = 'fotos'
+     and (storage.foldername(o.name))[1] not in (select id::text from parejas);
+
+  if descolocados > 0 then
+    raise exception 'Hay % archivo(s) en el bucket fuera de la carpeta de su pareja. Revísalos antes de quitar el puente.', descolocados;
+  end if;
+
+  -- 3. Archivos sin ninguna fila que los reclame. No impiden seguir, pero
+  --    conviene saber que están ahí ocupando espacio.
+  select count(*) into huerfanos
+    from storage.objects o
+   where o.bucket_id = 'fotos'
+     and not exists (select 1 from fotos f where f.ruta = o.name);
+
+  if huerfanos > 0 then
+    raise notice 'Aviso: % archivo(s) en el bucket sin fila en la tabla fotos. No estorban, pero ocupan.', huerfanos;
   end if;
 end;
 $$;
