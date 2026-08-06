@@ -33,7 +33,8 @@ en tiempo real.
    cp config.example.js config.js
    ```
 
-   En `config.js` pon tu `SUPABASE_URL` y tu clave `anon public`. Los correos
+   En `config.js` pon tu `SUPABASE_URL` y tu clave **publicable**
+   (`sb_publishable_...`, en Project Settings → API Keys). Los correos
    y los nombres no van ahí: cada persona escoge su nombre la primera vez que
    entra y se guarda en la tabla `miembros`.
 4. Abre `index.html` en el navegador (o sírvelo con cualquier servidor estático)
@@ -52,7 +53,7 @@ de dos variables de entorno del panel de Netlify:
 | Variable | De dónde sale |
 |---|---|
 | `SUPABASE_URL` | Supabase → Project Settings → API |
-| `SUPABASE_ANON_KEY` | la clave `anon public` de esa misma pantalla |
+| `SUPABASE_ANON_KEY` | la clave publicable (`sb_publishable_...`) de esa misma pantalla. El nombre de la variable es histórico: antes contenía la clave `anon` |
 
 Si alguna falta, el build falla y **no** se publica nada: es preferible a dejar
 en línea un sitio que no puede conectarse.
@@ -68,13 +69,13 @@ SUPABASE_URL=... SUPABASE_ANON_KEY=... node scripts/build-site.js
 `config.js` está en `.gitignore` y **nunca se sube al repositorio**. Solo se
 publica la plantilla `config.example.js`.
 
-La clave `anon public` de Supabase está pensada para vivir en el cliente: lo que
+La clave publicable de Supabase está pensada para vivir en el cliente: lo que
 realmente protege los datos son las políticas **RLS** de la base de datos. Aun
 así, este proyecto la mantiene fuera del repositorio.
 
-Los **correos y los nombres no están en el código**. Se guardan en la tabla
-`config` de la base de datos y la app los pide una vez iniciada la sesión, ya
-autenticada. Por eso ni el repositorio ni el código fuente del sitio publicado
+Los **correos y los nombres no están en el código**. Cada persona escoge su
+nombre al entrar y se guarda en la tabla `miembros`, que la app lee una vez
+iniciada la sesión, ya autenticada. Por eso ni el repositorio ni el código fuente del sitio publicado
 contienen datos personales: antes del login la app se llama "Nuestro Espacio".
 
 ## Estructura

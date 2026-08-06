@@ -106,7 +106,8 @@ alter publication supabase_realtime add table actividades, gratitudes, checkins,
 1. Ve a **Project Settings** (engranaje) **→ API** (en paneles nuevos: **Data API**).
 2. Copia dos valores:
    - **Project URL** → algo como `https://abcdefgh.supabase.co`
-   - **anon public** key → una clave larga que empieza por `eyJ...`
+   - La clave **publicable**, que empieza por `sb_publishable_`. Si tu proyecto
+     todavía usa las claves antiguas, será la **anon public**, que empieza por `eyJ`.
 3. Haz una copia del archivo `config.example.js` y llámala `config.js`
    (debe quedar en la misma carpeta que `index.html`). Ábrela con el Bloc de
    notas o cualquier editor:
@@ -114,7 +115,7 @@ alter publication supabase_realtime add table actividades, gratitudes, checkins,
 ```js
 window.APP_CONFIG = {
   SUPABASE_URL:      'PEGA_AQUI_TU_PROJECT_URL',
-  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_ANON_PUBLIC_KEY'
+  SUPABASE_ANON_KEY: 'PEGA_AQUI_TU_CLAVE_PUBLICABLE'
 };
 ```
 
@@ -152,7 +153,7 @@ Si algún día quieren cambiar un nombre, vuelvan a correr esa misma consulta co
 el valor nuevo. Mientras esa fila no exista, la app funciona igual pero se
 titula "Nuestro Espacio" y muestra la parte del correo antes de la @.
 
-> ¿Es seguro que la clave "anon" quede en el archivo? Sí: esa clave es pública
+> ¿Es seguro que esa clave quede en el archivo? Sí: es pública
 > por diseño. La protección real son las políticas del Paso 2 (solo usuarios
 > autenticados) y el Paso 4 (nadie puede registrarse).
 

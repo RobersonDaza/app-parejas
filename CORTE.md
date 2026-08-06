@@ -16,8 +16,15 @@ Cómo pasar la app real de una pareja a muchas, sin perder nada.
 > con lo que el orden del título quedaba al azar. Se arregló en producción con
 > un `update` y en el archivo con `json` y `clock_timestamp()`.
 >
-> **Pendientes de este corte:** ejecutar `004-quitar-puente-fotos.sql` unos
-> días después, y más adelante `drop table config`.
+> **Cerrado también el mismo día:** se ejecutó `004-quitar-puente-fotos.sql`
+> sin incidencias, y se resolvió una fuga: la clave `service_role` quedó
+> visible en una captura de pantalla. Apagar las claves legacy cerró la base de
+> datos y el panel de usuarios, pero **Storage siguió aceptándolas**; hizo falta
+> además revocar la clave de firma HS256 antigua en *JWT Keys → Previously used
+> keys*. Desde entonces el sitio usa la clave publicable (`sb_publishable_...`)
+> en vez de la `anon`.
+>
+> **Pendiente de este corte:** `drop table config`, cuando pase un tiempo.
 >
 > **Falta el Corte B**, que espera a la revisión legal y al proveedor de correo.
 
